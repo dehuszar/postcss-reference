@@ -1,0 +1,32 @@
+{
+  "name": "postcss-references",
+  "version": "0.0.0",
+  "description": "PostCSS plugin for importing CSS files and partials.  Will not output rules unless directly rng' stylesheet; a la LESS's `@import (reference) 'filename'`.  See http://lesscss.org/features/#import-optnce",
+  "keywords": [
+    "postcss",
+    "css",
+    "postcss-plugin",
+    "reference",
+    "import",
+    "extend"
+  ],
+  "author": "Samuel Allen <dehuszar@gmail.com>",
+  "license": "MIT",
+  "repository": "dehuszar/postcss-references",
+  "bugs": {
+    "url": "https://github.com/dehuszar/postcss-references/issues"
+  },
+  "homepage": "https://github.com/dehuszar/postcss-references",
+  "dependencies": {
+    "postcss": "^5.0.2"
+  },
+  "devDependencies": {
+    "chai": "^3.2.0",
+    "gulp": "^3.9.0",
+    "gulp-eslint": "^1.0.0",
+    "gulp-mocha": "^2.1.3"
+  },
+  "scripts": {
+    "test": "gulp"
+  }
+}
