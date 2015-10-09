@@ -13,7 +13,7 @@ var test = function (input, output, opts, done) {
     });
 };
 
-describe('postcss-import-references', function () {
+describe('postcss-reference', function () {
 
     /* Write tests here
 
