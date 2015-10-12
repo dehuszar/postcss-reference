@@ -17,6 +17,7 @@ What should work (but definitely needs more testing):
 TODO's for the 1.0 release:
  - Scoping of rules in `@media` queries.  Presently, **postcss-reference** ignores rules nested in `@media` atRules.  Intended functionality would be to only match references with the same breakpoint, but am open to suggestions.  Considering some shorthand for specifying media queries to reference from regardless of requesting rule's current `@media` context.  i.e. something akin to `@reference(header min(35em))`
  - Allow for referencing selectors using [LESS's pseudoclass-style syntax for @extend](http://lesscss.org/features/#import-options-reference-example) `selector:references(selectorName) {}` style of referencing.
+ - Write tests
 
 ##Basic syntax:
 
