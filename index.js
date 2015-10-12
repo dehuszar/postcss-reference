@@ -31,6 +31,9 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         // Walk through our rules looking for @references declarations
         css.walkRules(function(rule) {
 
+            // TODO :: if rule's selector has a pseudoclass, prepend matches to
+            // the rule
+
             rule.walk(function(node) {
 
                 if (node.type === 'atrule' &&
@@ -45,17 +48,36 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
                     // if referenced and referencing rules have declarations
                     // with of same property, defer to the referencing rule
-                    // TODO :: convert to a nodes.forEach loop
                     rule.walkDecls(function(decl) {
-                        for (var d in matches.decls) {
-                            if (decl.prop === matches.decls[d].prop) {
-                                matches.decls.splice(d, d + 1);
+                        matches.decls.forEach(function(match, d, matchedDecls) {
+                            if (decl.prop === match.prop) {
+                                matchedDecls.splice(d, 1);
                             }
-                        }
+                        });
                     });
 
                     for (var m in matches.decls) {
                         rule.insertBefore(node, matches.decls[m]);
+                    }
+
+                    if (matches.relationships.length) {
+                        // sort relationships alphabetically in descending order so
+                        // they will properly append after the original rule
+                        matches.relationships.sort(function (a, b) {
+
+                            if (a < b) {
+                                return 1;
+                            }
+                            if (a > b) {
+                                return -1;
+                            }
+                            // a must be equal to b
+                            return 0;
+                        });
+
+                        matches.relationships.forEach(function(newRule) {
+                            css.insertAfter(rule, newRule);
+                        });
                     }
 
                     node.remove();
@@ -64,11 +86,11 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         });
     };
 
-    var replaceDuplicates = function replaceDuplicates(matchArray, decl) {
+    var findDuplicates = function findDuplicates(matchArray, node, childParam) {
         var dup = null;
 
         find(matchArray, function(match, index, array) {
-            if (match.prop === decl.prop) {
+            if (match[childParam] === node[childParam]) {
                 dup = index;
             }
         });
@@ -76,43 +98,94 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         return dup;
     };
 
+    var extractMatchingDecls = function extractMatchingDecls(matchArray, rule) {
+
+        rule.walkDecls(function(decl) {
+            var dup = null;
+
+            // check for duplicates in our list of matches
+            dup = findDuplicates(matchArray, decl, "prop");
+
+            if (dup !== null) {
+                // if it's a dupe, replace existing rule
+                matchArray[dup].replaceWith(decl);
+            } else {
+                // otherwise add to the declarations list
+                matchArray.push(decl);
+            }
+        });
+    };
+
+    var extractMatchingRelationships = function extractMatchingRelationships(matchArray, rule) {
+        var dup = null;
+
+        dup = findDuplicates(matchArray, rule, "selector");
+
+        if (dup !== null) {
+            // TODO :: instead of replacing the rule outright, create mergeDuplicates
+            // function to to compare rules with matching selector names and run
+            // findDuplicates on their declarations
+            matchArray[dup].replaceWith(rule);
+        } else {
+            // otherwise add to the declarations list
+            matchArray.push(rule);
+        }
+    };
+
     var matchReferences = function matchReferences(referenceRules, terms) {
         var matches = {
-            decls: []
+            decls: [],
+            relationships: []
         };
 
-        referenceRules.forEach(function (rule) {
+        referenceRules.forEach(function (rule, index, rules) {
             // make sure any comma separated selector lists are broken out
-            var selectors = rule.selector.split(',');
+            var selectors = rule.selectors;
 
-            selectors.forEach(function(selector) {
+            selectors.forEach(function(selector, sindex, selectors) {
 
-                terms.forEach(function(term) {
+                terms.forEach(function(term, tindex, terms) {
+                    var flagAll = (term.indexOf(" all") !== -1);
+                    var tmpSelectorsArray = selectors;
+                    // strip " all" from term now that flag is set
+                    term = term.replace(" all", '');
+
                     // clean any whitespaces which might surround commas
                     term = term.trim();
 
-                    if (term === selector) {
-
-                        rule.walkDecls(function(decl) {
-                            var dup = null;
-
-                            // check for duplicates in our list of matches
-                            dup = replaceDuplicates(matches.decls, decl);
-
-                            if (dup !== null) {
-                                // if it's a dupe, replace existing rule
-                                matches.decls[dup].replaceWith(decl);
-                            } else {
-                                // otherwise add to the declarations list
-                                matches.decls.push(decl);
+                    // strip out selectors from list that don't start with current term
+                    if (tmpSelectorsArray.length > 1 && tmpSelectorsArray.indexOf(term) !== -1) {
+                        for (var i = 0; i < tmpSelectorsArray.length; i++){
+                            var cleanSelector = tmpSelectorsArray[i].trim();
+                        	if (cleanSelector.indexOf(term) !== 0) {
+                                tmpSelectorsArray.splice(i, 1);
                             }
-                        });
+                        }
+
+                        // then if we had to splice any selectors out of our
+                        // rule's selector list, reassemble the array back to a string
+                        selector = tmpSelectorsArray.join();
+                    }
+
+
+                    if (term === selector) {
+                        extractMatchingDecls(matches.decls, rule);
+                    } else if (rule.selector.indexOf(term) === 0 && flagAll) {
+                        console.log(rule.selector + " is related to " + term);
+                        // if the it's not an explicit match, but the 'all' flag is set
+                        // and the selector describes a relationships to the term, gather
+                        // those rules for our matches array
+                        // i.e. prevent matches with .button like .button-primary, but allow
+                        // matches like .button .primary, .button.primary, or .button > .primary
+                        var safeChars = [" ", ".", "#", "+", "~", ">", ":"];
+
+                        if (rule.selector.length > term.length &&
+                            rule.selector.charAt(term.length + 1).indexOf(safeChars)) {
+                                extractMatchingRelationships(matches.relationships, rule);
+                        }
                     }
                 });
             });
-
-            // TODO :: when includeAll functionality is added
-            // console.log(!referenceRules[rule].selector.indexOf(terms));
         });
 
         return matches;
@@ -121,5 +194,6 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     return function (css, result) {
         findReferenceableRules(css);
         findReferences(css);
+        console.log(css);
     };
 });
