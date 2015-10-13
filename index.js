@@ -38,13 +38,12 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
                 if (node.type === 'atrule' &&
                     node.name === 'references') {
-                    // check if the referenced node's params match any rules in
-                    // our references array
-                    var terms = node.params.replace('(', '').replace(')', '').split(',');
-                    var matches;
 
-                    // check for matches
-                    matches = matchReferences(referenceRules, terms);
+                    // extract our @references() contents and split selectors into an array
+                    var terms = node.params.replace('(', '').replace(')', '').split(',');
+
+                    // check our reference array for any of our terms
+                    var matches = matchReferences(referenceRules, terms);
 
                     // if referenced and referencing rules have declarations
                     // with of same property, defer to the referencing rule
@@ -93,7 +92,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         };
 
         referenceRules.forEach(function (reference, index, references) {
-            // make sure any comma separated selector lists are broken out
+            // make sure any comma separated selector lists are broken out into an array
             var refSelectors = reference.selectors;
 
             refSelectors.forEach(function(refSelector, sindex, refSelectors) {
