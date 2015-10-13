@@ -86,6 +86,65 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         });
     };
 
+    var matchReferences = function matchReferences(referenceRules, terms) {
+        var matches = {
+            decls: [],
+            relationships: []
+        };
+
+        referenceRules.forEach(function (reference, index, references) {
+            // make sure any comma separated selector lists are broken out
+            var refSelectors = reference.selectors;
+
+            refSelectors.forEach(function(refSelector, sindex, refSelectors) {
+
+                terms.forEach(function(term, tindex, terms) {
+                    var flagAll = (term.indexOf(" all") !== -1);
+                    var tmpSelectorsArray = refSelectors;
+                    // strip " all" from term now that flag is set
+                    term = term.replace(" all", '');
+
+                    // clean any whitespaces which might surround commas
+                    term = term.trim();
+
+                    // strip out selectors from list that don't start with current term
+                    if (tmpSelectorsArray.length > 1 && tmpSelectorsArray.indexOf(term) !== -1) {
+                        for (var i = 0; i < tmpSelectorsArray.length; i++){
+                            var cleanSelector = tmpSelectorsArray[i].trim();
+                        	if (cleanSelector.indexOf(term) !== 0) {
+                                tmpSelectorsArray.splice(i, 1);
+                            }
+                        }
+
+                        // then if we had to splice any selectors out of our
+                        // reference's selector list, reassemble the array back to a string
+                        refSelector = tmpSelectorsArray.join();
+                    }
+
+
+                    if (term === refSelector) {
+                        extractMatchingDecls(matches.decls, reference);
+                    } else if (reference.selector.indexOf(term) === 0 && flagAll) {
+                        console.log(reference.selector + " is related to " + term);
+                        // if the it's not an explicit match, but the 'all' flag is set
+                        // and the selector describes a relationships to the term, gather
+                        // those references for our matches array
+                        // i.e. prevent matches with .button like .button-primary, but allow
+                        // matches like .button .primary, .button.primary, or .button > .primary
+                        var safeChars = [" ", ".", "#", "+", "~", ">", ":"];
+
+                        if (reference.selector.length > term.length &&
+                            reference.selector.charAt(term.length + 1).indexOf(safeChars)) {
+                                extractMatchingRelationships(matches.relationships, reference);
+                        }
+                    }
+                });
+            });
+        });
+
+        return matches;
+    };
+
     var findDuplicates = function findDuplicates(matchArray, node, childParam) {
         var dup = null;
 
@@ -117,78 +176,30 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     };
 
     var extractMatchingRelationships = function extractMatchingRelationships(matchArray, rule) {
-        var dup = null;
 
-        dup = findDuplicates(matchArray, rule, "selector");
+        matchArray.forEach(function(match) {
+            var dup = null;
 
-        if (dup !== null) {
-            // TODO :: instead of replacing the rule outright, create mergeDuplicates
-            // function to to compare rules with matching selector names and run
-            // findDuplicates on their declarations
-            matchArray[dup].replaceWith(rule);
-        } else {
-            // otherwise add to the declarations list
-            matchArray.push(rule);
-        }
-    };
+            dup = findDuplicates(matchArray, rule, "selector");
 
-    var matchReferences = function matchReferences(referenceRules, terms) {
-        var matches = {
-            decls: [],
-            relationships: []
-        };
+            if (dup !== null) {
+                // TODO :: instead of replacing the rule outright, create mergeDuplicates
+                // function to to compare rules with matching selector names and run
+                // findDuplicates on their declarations
+                // matchArray[dup].replaceWith(rule);
 
-        referenceRules.forEach(function (rule, index, rules) {
-            // make sure any comma separated selector lists are broken out
-            var selectors = rule.selectors;
+                // walk through each decl in rule and discard all matching decls
+                // from dup before merging remaining decls
+                rule.walkDecls(function(decl) {
+                    var dupDecl = findDuplicates(matchArray[dup].nodes, rule.nodes[decl], "prop");
 
-            selectors.forEach(function(selector, sindex, selectors) {
-
-                terms.forEach(function(term, tindex, terms) {
-                    var flagAll = (term.indexOf(" all") !== -1);
-                    var tmpSelectorsArray = selectors;
-                    // strip " all" from term now that flag is set
-                    term = term.replace(" all", '');
-
-                    // clean any whitespaces which might surround commas
-                    term = term.trim();
-
-                    // strip out selectors from list that don't start with current term
-                    if (tmpSelectorsArray.length > 1 && tmpSelectorsArray.indexOf(term) !== -1) {
-                        for (var i = 0; i < tmpSelectorsArray.length; i++){
-                            var cleanSelector = tmpSelectorsArray[i].trim();
-                        	if (cleanSelector.indexOf(term) !== 0) {
-                                tmpSelectorsArray.splice(i, 1);
-                            }
-                        }
-
-                        // then if we had to splice any selectors out of our
-                        // rule's selector list, reassemble the array back to a string
-                        selector = tmpSelectorsArray.join();
-                    }
-
-
-                    if (term === selector) {
-                        extractMatchingDecls(matches.decls, rule);
-                    } else if (rule.selector.indexOf(term) === 0 && flagAll) {
-                        console.log(rule.selector + " is related to " + term);
-                        // if the it's not an explicit match, but the 'all' flag is set
-                        // and the selector describes a relationships to the term, gather
-                        // those rules for our matches array
-                        // i.e. prevent matches with .button like .button-primary, but allow
-                        // matches like .button .primary, .button.primary, or .button > .primary
-                        var safeChars = [" ", ".", "#", "+", "~", ">", ":"];
-
-                        if (rule.selector.length > term.length &&
-                            rule.selector.charAt(term.length + 1).indexOf(safeChars)) {
-                                extractMatchingRelationships(matches.relationships, rule);
-                        }
-                    }
+                    matchArray[dup].nodes[dupDecl].remove();
                 });
-            });
+            } else {
+                // otherwise add to the declarations list
+                matchArray.push(rule);
+            }
         });
-
-        return matches;
     };
 
     return function (css, result) {
