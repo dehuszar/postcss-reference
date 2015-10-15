@@ -11,7 +11,6 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
     var referenceRules = [];
     var findReferenceableRules = function findReferenceableRules(css) {
-
         // Walk through list of rules in @reference blocks, push them into the
         // referenceRules array and then remove them from the AST so they don't
         // get output to the compiled CSS unless matched.
@@ -26,11 +25,9 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     };
 
     var findReferences = function findReferences(css) {
-
         // Now that our @reference blocks have been processed
         // Walk through our rules looking for @references declarations
         css.walkRules(function(rule) {
-
             // TODO :: if rule's selector has a pseudoclass, prepend matches to
             // the rule
 
@@ -85,55 +82,81 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         });
     };
 
+    var testRelationExistsIn = function testSelectorExistsIn(item, array, prop) {
+        var value = false;
+
+        array.forEach(function (obj) {
+            if (item.indexOf(obj[prop]) === 0) {
+                value = true;
+            }
+        });
+
+        return value;
+    };
+
     var matchReferences = function matchReferences(referenceRules, terms) {
         var matches = {
             decls: [],
             relationships: []
         };
 
+        // terms and params are a string at this point.  Convert to an array of
+        // well defined objects for cleaner processing
+        processedTerms = [];
+
+        terms.forEach(function(term) {
+            var obj = {
+                name: null,
+                all: false
+            };
+
+            obj.all = (term.indexOf(" all") !== -1);
+            // strip out any params from term now that flags are set
+            // (only 'all' for now)
+            term = term.replace(" all", '');
+
+            // clean any whitespaces which might surround commas after param
+            // extraction and assign the term to obj.name
+            obj.name = term.trim();
+
+            processedTerms.push(obj);
+        });
+
         referenceRules.forEach(function (reference, index, references) {
-            // make sure any comma separated selector lists are broken out into an array
-            var refSelectors = reference.selectors;
+            // Strip out any selectors in our current reference rule which don't match
+            // any of our requested terms
+            var matchedRefSelectors = [];
 
-            refSelectors.forEach(function(refSelector, sindex, refSelectors) {
+            reference.selectors.filter(function(ref) {
+                var hasRelation = testRelationExistsIn(ref, processedTerms, "name");
 
-                terms.forEach(function(term, tindex, terms) {
-                    var flagAll = (term.indexOf(" all") !== -1);
+                if (hasRelation) {
+                    matchedRefSelectors.push(ref.trim());
+                }
+            });
+
+            matchedRefSelectors.forEach(function(refSelector, sindex, refSelectors) {
+
+                processedTerms.forEach(function(term, tindex, terms) {
+                    // var flagAll = (term.indexOf(" all") !== -1);
                     var tmpSelectorsArray = refSelectors;
-                    // strip " all" from term now that flag is set
-                    term = term.replace(" all", '');
 
-                    // clean any whitespaces which might surround commas
-                    term = term.trim();
-
-                    // strip out selectors from list that don't start with current term
-                    if (tmpSelectorsArray.length > 1 && tmpSelectorsArray.indexOf(term) !== -1) {
-                        for (var i = 0; i < tmpSelectorsArray.length; i++){
-                            var cleanSelector = tmpSelectorsArray[i].trim();
-                        	if (cleanSelector.indexOf(term) !== 0) {
-                                tmpSelectorsArray.splice(i, 1);
-                            }
-                        }
-
-                        // then if we had to splice any selectors out of our
-                        // reference's selector list, reassemble the array back to a string
-                        refSelector = tmpSelectorsArray.join();
-                    }
-
-
-                    if (term === refSelector) {
+                    // if it's an exact match...
+                    if (term.name === refSelector) {
+                        // just merge up the declarations of the successfully
+                        // referenced rule
                         extractMatchingDecls(matches.decls, reference);
-                    } else if (reference.selector.indexOf(term) === 0 && flagAll) {
-                        console.log(reference.selector + " is related to " + term);
-                        // if the it's not an explicit match, but the 'all' flag is set
+
+                    } else if (reference.selector.indexOf(term.name) === 0 && term.all) {
+                        // otherwise, if the it's not an explicit match, but the 'all' flag is set
                         // and the selector describes a relationships to the term, gather
                         // those references for our matches array
                         // i.e. prevent matches with .button like .button-primary, but allow
                         // matches like .button .primary, .button.primary, or .button > .primary
                         var safeChars = [" ", ".", "#", "+", "~", ">", ":"];
 
-                        if (reference.selector.length > term.length &&
-                            reference.selector.charAt(term.length + 1).indexOf(safeChars)) {
+                        if (reference.selector.length > term.name.length &&
+                            safeChars.indexOf(reference.selector.charAt(term.name.length)) === 0) {
                                 extractMatchingRelationships(matches.relationships, reference);
                         }
                     }
@@ -176,34 +199,32 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
     var extractMatchingRelationships = function extractMatchingRelationships(matchArray, rule) {
 
-        matchArray.forEach(function(match) {
-            var dup = null;
+        if (!matchArray.length) {
+            matchArray.push(rule);
+        } else {
+            matchArray.forEach(function(match) {
+                var dup = null;
 
-            dup = findDuplicates(matchArray, rule, "selector");
+                dup = findDuplicates(matchArray, rule, "selector");
 
-            if (dup !== null) {
-                // TODO :: instead of replacing the rule outright, create mergeDuplicates
-                // function to to compare rules with matching selector names and run
-                // findDuplicates on their declarations
-                // matchArray[dup].replaceWith(rule);
+                if (dup !== null) {
+                    // walk through each decl in rule and discard all matching decls
+                    // from dup before merging remaining decls
+                    rule.walkDecls(function(decl) {
+                        var dupDecl = findDuplicates(matchArray[dup].nodes, rule.nodes[decl], "prop");
 
-                // walk through each decl in rule and discard all matching decls
-                // from dup before merging remaining decls
-                rule.walkDecls(function(decl) {
-                    var dupDecl = findDuplicates(matchArray[dup].nodes, rule.nodes[decl], "prop");
-
-                    matchArray[dup].nodes[dupDecl].remove();
-                });
-            } else {
-                // otherwise add to the declarations list
-                matchArray.push(rule);
-            }
-        });
+                        matchArray[dup].nodes[dupDecl].remove();
+                    });
+                } else {
+                    // otherwise add to the declarations list
+                    matchArray.push(rule);
+                }
+            });
+        }
     };
 
     return function (css, result) {
         findReferenceableRules(css);
         findReferences(css);
-        console.log(css);
     };
 });
