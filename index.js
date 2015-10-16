@@ -42,6 +42,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                     // check our reference array for any of our terms
                     var matches = matchReferences(referenceRules, terms);
 
+                    // TODO :: spin this out into separate function so it can be reused for mqMatching
                     // if referenced and referencing rules have declarations
                     // with of same property, defer to the referencing rule
                     rule.walkDecls(function(decl) {
@@ -56,6 +57,8 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                         rule.insertBefore(node, matches.decls[m]);
                     }
 
+                    // TODO :: move insertAfter function out of this funciton,
+                    // then spin this out into a sortResults function which can be called before insertion
                     if (matches.relationships.length) {
                         // sort relationships alphabetically in descending order so
                         // they will properly append after the original rule
@@ -71,6 +74,8 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                             return 0;
                         });
 
+                        // TODO :: spin out into generic named function that can be
+                        // passed into an iterating function
                         matches.relationships.forEach(function(newRule) {
                             css.insertAfter(rule, newRule);
                         });
@@ -161,7 +166,6 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     };
 
     var handleRelationshipMatches = function handleRelationshipMatches(obj, matchedRefSelArray, termsArray, declDest, ruleDest) {
-        // TODO :: replace previous implementation specifics with generalized params
         matchedRefSelArray.forEach(function(selector, index, selectors) {
 
             termsArray.forEach(function(term, tindex, terms) {
