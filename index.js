@@ -94,91 +94,6 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         return value;
     };
 
-    var matchReferences = function matchReferences(referenceRules, terms) {
-        var matches = {
-            decls: [],
-            relationships: []
-        };
-
-        // terms and params are a string at this point.  Convert to an array of
-        // well defined objects for cleaner processing
-        var processedTerms = [];
-
-        terms.forEach(function(term) {
-            var obj = {
-                name: null,
-                all: false
-            };
-
-            obj.all = (term.indexOf(" all") !== -1);
-            // strip out any params from term now that flags are set
-            // (only 'all' for now)
-            term = term.replace(" all", '');
-
-            // clean any whitespaces which might surround commas after param
-            // extraction and assign the term to obj.name
-            obj.name = term.trim();
-
-            processedTerms.push(obj);
-        });
-
-        referenceRules.forEach(function (reference, index, references) {
-            // Strip out any selectors in our current reference rule which don't match
-            // any of our requested terms
-            var matchedRefSelectors = [];
-
-            reference.selectors.filter(function(ref) {
-                var hasRelation = testRelationExistsIn(ref, processedTerms, "name");
-
-                if (hasRelation) {
-                    matchedRefSelectors.push(ref.trim());
-                }
-            });
-
-            matchedRefSelectors.forEach(function(refSelector, sindex, refSelectors) {
-
-                processedTerms.forEach(function(term, tindex, terms) {
-                    // var flagAll = (term.indexOf(" all") !== -1);
-                    var tmpSelectorsArray = refSelectors;
-
-                    // if it's an exact match...
-                    if (term.name === refSelector) {
-                        // just merge up the declarations of the successfully
-                        // referenced rule
-                        extractMatchingDecls(matches.decls, reference);
-
-                    } else if (reference.selector.indexOf(term.name) === 0 && term.all) {
-                        // otherwise, if the it's not an explicit match, but the 'all' flag is set
-                        // and the selector describes a relationships to the term, gather
-                        // those references for our matches array
-                        // i.e. prevent matches with .button like .button-primary, but allow
-                        // matches like .button .primary, .button.primary, or .button > .primary
-                        var safeChars = [" ", ".", "#", "+", "~", ">", ":"];
-
-                        if (reference.selector.length > term.name.length &&
-                            safeChars.indexOf(reference.selector.charAt(term.name.length)) === 0) {
-                                extractMatchingRelationships(matches.relationships, reference);
-                        }
-                    }
-                });
-            });
-        });
-
-        return matches;
-    };
-
-    var findDuplicates = function findDuplicates(matchArray, node, childParam) {
-        var dup = null;
-
-        find(matchArray, function(match, index, array) {
-            if (match[childParam] === node[childParam]) {
-                dup = index;
-            }
-        });
-
-        return dup;
-    };
-
     var extractMatchingDecls = function extractMatchingDecls(matchArray, rule) {
 
         rule.walkDecls(function(decl) {
@@ -221,6 +136,136 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                 }
             });
         }
+    };
+
+    var findDuplicates = function findDuplicates(matchArray, node, childParam) {
+        var dup = null;
+
+        find(matchArray, function(match, index, array) {
+            if (match[childParam] === node[childParam]) {
+                dup = index;
+            }
+        });
+
+        return dup;
+    };
+
+    var handleExactMatches = function handleExactMatches(obj, objParam, termsArray, destination) {
+        obj.selectors.filter(function(ref) {
+            var hasRelation = testRelationExistsIn(ref, termsArray, objParam);
+
+            if (hasRelation) {
+                destination.push(ref.trim());
+            }
+        });
+    };
+
+    var handleRelationshipMatches = function handleRelationshipMatches(/* TODO :: need generalized params */) {
+        // TODO :: replace previous implementation specifics with generalized params
+        matchedRefSelectors.forEach(function(refSelector, sindex, refSelectors) {
+
+            processedTerms.forEach(function(term, tindex, terms) {
+                // var flagAll = (term.indexOf(" all") !== -1);
+                var tmpSelectorsArray = refSelectors;
+
+                // if it's an exact match already in the matches references obj...
+                if (term.name === refSelector) {
+                    // just merge up the declarations of the successfully
+                    // referenced rule
+                    extractMatchingDecls(matches.decls, reference);
+
+                } else if (reference.selector.indexOf(term.name) === 0 && term.all) {
+                    // otherwise, if the it's not an explicit match, but the 'all' flag is set
+                    // and the selector describes a relationships to the term, gather
+                    // those references for our matches array
+                    // i.e. prevent matches with .button like .button-primary, but allow
+                    // matches like .button .primary, .button.primary, or .button > .primary
+                    var safeChars = [" ", ".", "#", "+", "~", ">", ":"];
+
+                    if (reference.selector.length > term.name.length &&
+                        safeChars.indexOf(reference.selector.charAt(term.name.length)) === 0) {
+                            extractMatchingRelationships(matches.relationships, reference);
+                    }
+                }
+            });
+        });
+    }
+
+    var matchReferences = function matchReferences(referenceRules, terms) {
+        var matches = {
+            decls: [],
+            relationships: [],
+            mqDecls: {
+                mediaQuery: null,
+                nodes: []
+            },
+            mqRelationships: {
+                mediaQuery: null,
+                nodes: []
+            }
+        };
+
+        // terms and params are a string at this point.  Convert to an array of
+        // well defined objects for cleaner processing
+        var processedTerms = [];
+
+        terms.forEach(function(term) {
+            var obj = {
+                all: false,
+                mq: null,
+                name: null
+            };
+
+            obj.all = (term.indexOf(" all") !== -1);
+            // strip out any params from term now that flags are set
+            // (only 'all' for now)
+            term = term.replace(" all", '');
+
+            // clean any whitespaces which might surround commas after param
+            // extraction and assign the term to obj.name
+            obj.name = term.trim();
+
+            processedTerms.push(obj);
+        });
+
+        referenceRules.forEach(function (reference, index, references) {
+            // Strip out any selectors in our current reference rule which don't match
+            // any of our requested terms
+            var matchedRefSelectors = [];
+
+            handleExactMatches(reference, "name", processedTerms, matchedRefSelectors);
+
+            handleRelationshipMatches(reference, matchedRefSelectors, matches.relationships);
+            // matchedRefSelectors.forEach(function(refSelector, sindex, refSelectors) {
+            //
+            //     processedTerms.forEach(function(term, tindex, terms) {
+            //         // var flagAll = (term.indexOf(" all") !== -1);
+            //         var tmpSelectorsArray = refSelectors;
+            //
+            //         // if it's an exact match already in the matches references obj...
+            //         if (term.name === refSelector) {
+            //             // just merge up the declarations of the successfully
+            //             // referenced rule
+            //             extractMatchingDecls(matches.decls, reference);
+            //
+            //         } else if (reference.selector.indexOf(term.name) === 0 && term.all) {
+            //             // otherwise, if the it's not an explicit match, but the 'all' flag is set
+            //             // and the selector describes a relationships to the term, gather
+            //             // those references for our matches array
+            //             // i.e. prevent matches with .button like .button-primary, but allow
+            //             // matches like .button .primary, .button.primary, or .button > .primary
+            //             var safeChars = [" ", ".", "#", "+", "~", ">", ":"];
+            //
+            //             if (reference.selector.length > term.name.length &&
+            //                 safeChars.indexOf(reference.selector.charAt(term.name.length)) === 0) {
+            //                     extractMatchingRelationships(matches.relationships, reference);
+            //             }
+            //         }
+            //     });
+            // });
+        });
+
+        return matches;
     };
 
     return function (css, result) {

@@ -39,6 +39,10 @@ var tests = [{
     message: 'referenced selectors which contain nested selectors (using postcss-nested) and have the "all" flag set, will have their nested rules inserted after the requesting rule',
     fixture: '@reference { header { color: blue; display: block; aside { width: 25%; } } } header { @references(header all); display: block; margin: 1em; }',
     expected: 'header { color: blue; display: block; margin: 1em; }\nheader aside { width: 25%; }'
+}, {
+    message: 'detecting declarations inside a media query should result in the creation of a new copy of the rule output inside the same media query if it exists, otherwise create a new one, and then output the matched declaration',
+    fixture: '@reference { article { width: 100%; @media (min-width: 900px) { width: 75%; } } } article { @media (min-width: 900px) { display: block; @references(article); } }',
+    expected: 'article { display: block; width: 100%; } @media (min-width: 900px) { article { width: 75%; } }'
 }];
 
 function process(css, options) {
