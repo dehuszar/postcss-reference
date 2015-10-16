@@ -102,7 +102,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
         // terms and params are a string at this point.  Convert to an array of
         // well defined objects for cleaner processing
-        processedTerms = [];
+        var processedTerms = [];
 
         terms.forEach(function(term) {
             var obj = {

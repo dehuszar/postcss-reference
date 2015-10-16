@@ -2,6 +2,9 @@
   "name": "postcss-reference",
   "version": "0.0.0",
   "description": "PostCSS plugin for importing CSS files and partials.  Will not output rules unless directly rng' stylesheet; a la LESS's `@import (reference) 'filename'`.  See http://lesscss.org/features/#import-optnce",
+  "scripts": {
+    "test": "gulp"
+  },
   "keywords": [
     "postcss",
     "css",
@@ -10,7 +13,10 @@
     "import",
     "extend"
   ],
-  "author": "Samuel Allen <dehuszar@gmail.com>",
+  "author": {
+    "name": "Samuel Allen",
+    "email": "dehuszar@gmail.com"
+  },
   "license": "MIT",
   "repository": "dehuszar/postcss-reference",
   "bugs": {
@@ -22,12 +28,11 @@
     "postcss": "^5.0.2"
   },
   "devDependencies": {
-    "chai": "^3.2.0",
-    "gulp": "^3.9.0",
-    "gulp-eslint": "^1.0.0",
-    "gulp-mocha": "^2.1.3"
-  },
-  "scripts": {
-    "test": "gulp"
+    "babel": "^5.8.23",
+    "babel-tape-runner": "^1.2.0",
+    "postcss-import": "^7.0.0",
+    "postcss-nested": "^1.0.0",
+    "tap-spec": "^4.1.0",
+    "tape": "^4.2.1"
   }
 }
