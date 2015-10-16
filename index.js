@@ -160,21 +160,21 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         });
     };
 
-    var handleRelationshipMatches = function handleRelationshipMatches(/* TODO :: need generalized params */) {
+    var handleRelationshipMatches = function handleRelationshipMatches(obj, matchedRefSelArray, termsArray, declDest, ruleDest) {
         // TODO :: replace previous implementation specifics with generalized params
-        matchedRefSelectors.forEach(function(refSelector, sindex, refSelectors) {
+        matchedRefSelArray.forEach(function(selector, index, selectors) {
 
-            processedTerms.forEach(function(term, tindex, terms) {
+            termsArray.forEach(function(term, tindex, terms) {
                 // var flagAll = (term.indexOf(" all") !== -1);
-                var tmpSelectorsArray = refSelectors;
+                var tmpSelectorsArray = selectors;
 
                 // if it's an exact match already in the matches references obj...
-                if (term.name === refSelector) {
+                if (term.name === selector) {
                     // just merge up the declarations of the successfully
                     // referenced rule
-                    extractMatchingDecls(matches.decls, reference);
+                    extractMatchingDecls(declDest, obj);
 
-                } else if (reference.selector.indexOf(term.name) === 0 && term.all) {
+                } else if (obj.selector.indexOf(term.name) === 0 && term.all) {
                     // otherwise, if the it's not an explicit match, but the 'all' flag is set
                     // and the selector describes a relationships to the term, gather
                     // those references for our matches array
@@ -182,14 +182,14 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                     // matches like .button .primary, .button.primary, or .button > .primary
                     var safeChars = [" ", ".", "#", "+", "~", ">", ":"];
 
-                    if (reference.selector.length > term.name.length &&
-                        safeChars.indexOf(reference.selector.charAt(term.name.length)) === 0) {
-                            extractMatchingRelationships(matches.relationships, reference);
+                    if (obj.selector.length > term.name.length &&
+                        safeChars.indexOf(obj.selector.charAt(term.name.length)) === 0) {
+                            extractMatchingRelationships(ruleDest, obj);
                     }
                 }
             });
         });
-    }
+    };
 
     var matchReferences = function matchReferences(referenceRules, terms) {
         var matches = {
@@ -235,34 +235,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
             handleExactMatches(reference, "name", processedTerms, matchedRefSelectors);
 
-            handleRelationshipMatches(reference, matchedRefSelectors, matches.relationships);
-            // matchedRefSelectors.forEach(function(refSelector, sindex, refSelectors) {
-            //
-            //     processedTerms.forEach(function(term, tindex, terms) {
-            //         // var flagAll = (term.indexOf(" all") !== -1);
-            //         var tmpSelectorsArray = refSelectors;
-            //
-            //         // if it's an exact match already in the matches references obj...
-            //         if (term.name === refSelector) {
-            //             // just merge up the declarations of the successfully
-            //             // referenced rule
-            //             extractMatchingDecls(matches.decls, reference);
-            //
-            //         } else if (reference.selector.indexOf(term.name) === 0 && term.all) {
-            //             // otherwise, if the it's not an explicit match, but the 'all' flag is set
-            //             // and the selector describes a relationships to the term, gather
-            //             // those references for our matches array
-            //             // i.e. prevent matches with .button like .button-primary, but allow
-            //             // matches like .button .primary, .button.primary, or .button > .primary
-            //             var safeChars = [" ", ".", "#", "+", "~", ">", ":"];
-            //
-            //             if (reference.selector.length > term.name.length &&
-            //                 safeChars.indexOf(reference.selector.charAt(term.name.length)) === 0) {
-            //                     extractMatchingRelationships(matches.relationships, reference);
-            //             }
-            //         }
-            //     });
-            // });
+            handleRelationshipMatches(reference, matchedRefSelectors, processedTerms, matches.decls, matches.relationships);
         });
 
         return matches;
