@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "description": "PostCSS plugin for importing CSS files and partials.  Will not output rules unless directly rng' stylesheet; a la LESS's `@import (reference) 'filename'`.  See http://lesscss.org/features/#import-optnce",
   "scripts": {
-    "test": "gulp"
+    "prepublish": "babel src --out-dir dist --ignore /__tests__/",
+    "test-unformatted": "babel-tape-runner \"src/**/__tests__/*.js\"",
+    "test": "npm run test-unformatted | tap-spec"
   },
   "keywords": [
     "postcss",
