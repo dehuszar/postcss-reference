@@ -21,7 +21,7 @@ TODO's for the 1.0 release:
 
 ##Basic syntax:
 
-Rules placed in the `@reference` block are mapped to a comparison array and discarded from the AST.  Rules from your stylesheet which then use an `@references(selectorName)` declaration will have their requested selector compared against the rules in your comparison array.  Matching rules from the `@reference` block will then have their declarations merged into your requesting rules' declarations where the originating `@references(selectorName)` request was made.  Preference is given to the requesting rule; meaning, if both rules have declarations with the same property name, such as "display", the property from the `@reference` block will be ignored.  This is to ensure that your stylesheets rules will *always override* referenced rules.
+Rules placed in the `@reference` block are mapped to a comparison array and discarded from the AST.  Rules from your stylesheet which then use an `@references selectorName` declaration will have their requested selector compared against the rules in your comparison array.  Matching rules from the `@reference` block will then have their declarations merged into your requesting rules' declarations where the originating `@references selectorName` request was made.  Preference is given to the requesting rule; meaning, if both rules have declarations with the same property name, such as "display", the property from the `@reference` block will be ignored.  This is to ensure that your stylesheets rules will *always override* referenced rules.
 
 ```css
 /* Input */
@@ -32,7 +32,7 @@ Rules placed in the `@reference` block are mapped to a comparison array and disc
 }
 
 header {
-    @references(header);
+    @references header;
     margin: 0;
 }
 ```
@@ -47,7 +47,7 @@ header {
 
 ##Using the `all` flag:
 
-When a `@references(selectorName)` declaration uses the 'all' flag, **postcss-reference** will look for all selectors in the `@reference` block which begin with the requested selector.
+When a `@references selectorName` declaration uses the 'all' flag, **postcss-reference** will look for all selectors in the `@reference` block which begin with the requested selector.
 
 ```css
 /* Input */
@@ -59,14 +59,14 @@ When a `@references(selectorName)` declaration uses the 'all' flag, **postcss-re
     header h1 {
         font-family: Arial;
     }
-    
+
     .widget header {
         padding-left: 1em;
     }
 }
 
 header {
-    @references(header all);
+    @references header all;
     margin: 0;
 }
 ```
@@ -97,7 +97,7 @@ In this example we import the entirety of [Yahoo's PureCSS library](http://purec
 }
 
 button {
-    @references(.pure-button, .pure-button-primary);
+    @references .pure-button, .pure-button-primary;
 }
 ```
 
