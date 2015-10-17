@@ -24,6 +24,22 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         });
     };
 
+    var sortResults = function sortResults(array) {
+        // sort relationships alphabetically in descending order so
+        // they will properly append after the original rule
+        array.sort(function (a, b) {
+
+            if (a < b) {
+                return 1;
+            }
+            if (a > b) {
+                return -1;
+            }
+            // a must be equal to b
+            return 0;
+        });
+    };
+
     var findReferences = function findReferences(css) {
         // Now that our @reference blocks have been processed
         // Walk through our rules looking for @references declarations
@@ -37,7 +53,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                     node.name === 'references') {
 
                     // extract our @references() contents and split selectors into an array
-                    var terms = node.params.replace('(', '').replace(')', '').split(',');
+                    var terms = node.params.split(',');
 
                     // check our reference array for any of our terms
                     var matches = matchReferences(referenceRules, terms);
@@ -56,25 +72,14 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                         rule.insertBefore(node, matches.decls[m]);
                     }
 
+                    // sort results so they output in the original order referenced
                     if (matches.relationships.length) {
-                        // sort relationships alphabetically in descending order so
-                        // they will properly append after the original rule
-                        matches.relationships.sort(function (a, b) {
-
-                            if (a < b) {
-                                return 1;
-                            }
-                            if (a > b) {
-                                return -1;
-                            }
-                            // a must be equal to b
-                            return 0;
-                        });
-
-                        matches.relationships.forEach(function(newRule) {
-                            css.insertAfter(rule, newRule);
-                        });
+                        sortResults(matches.relationships);
                     }
+
+                    matches.relationships.forEach(function(newRule) {
+                        css.insertAfter(rule, newRule);
+                    });
 
                     node.remove();
                 }
