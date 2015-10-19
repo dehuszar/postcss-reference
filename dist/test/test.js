@@ -21,24 +21,28 @@ var nested = require("postcss-nested");
 
 var tests = [{
     message: 'should match requested selector',
-    fixture: '@reference{ header { color: blue; display: block; } } header { @references(header); display: block; margin: 1em; }',
+    fixture: '@reference{ header { color: blue; display: block; } } header { @references header; display: block; margin: 1em; }',
     expected: 'header { color: blue; display: block; margin: 1em; }'
 }, {
     message: "should merge duplicate selectors' declarations into single rule",
-    fixture: '@reference { header { color: blue; display: block; } header { border: 1px solid black; } } header { @references(header); display: block; margin: 1em; }',
+    fixture: '@reference { header { color: blue; display: block; } header { border: 1px solid black; } } header { @references header; display: block; margin: 1em; }',
     expected: 'header { color: blue; border: 1px solid black; display: block; margin: 1em; }'
 }, {
     message: 'non-matching selectors in selector list get discarded',
-    fixture: '@reference { header, section { padding: 0; } } header { @references(header); display: block; margin: 1em; }',
+    fixture: '@reference { header, section { padding: 0; } } header { @references header; display: block; margin: 1em; }',
     expected: 'header { padding: 0; display: block; margin: 1em; }'
 }, {
     message: '@import files into the @reference block and extend rules from inside',
-    fixture: '@reference{ @import "test/imports/header.css" } header { @references(header); display: block; margin: 1em; }',
+    fixture: '@reference{ @import "test/imports/header.css" } header { @references header; display: block; margin: 1em; }',
     expected: 'header { color: blue; padding: 0; box-sizing: border-box; width: 100%; display: block; margin: 1em; }'
 }, {
     message: 'referenced selectors which contain nested selectors (using postcss-nested) and have the "all" flag set, will have their nested rules inserted after the requesting rule',
-    fixture: '@reference { header { color: blue; display: block; aside { width: 25%; } } } header { @references(header all); display: block; margin: 1em; }',
+    fixture: '@reference { header { color: blue; display: block; aside { width: 25%; } } } header { @references header all; display: block; margin: 1em; }',
     expected: 'header { color: blue; display: block; margin: 1em; }\nheader aside { width: 25%; }'
+}, {
+    message: 'By default, a referencing rule not wrapped in a media query will match the rule&#39;s selector at any defined media query',
+    fixture: '@reference { article { width: 100%;} @media (min-width: 900px) { article { width: 75%; } } } article { display: block; @references(article); }',
+    expected: 'article { display: block; width: 100%; } @media (min-width: 900px) { article { width: 75%; } }'
 }, {
     message: 'detecting declarations inside a media query should result in the creation of a new copy of the rule output inside the same media query if it exists, otherwise create a new one, and then output the matched declaration',
     fixture: '@reference { article { width: 100%; @media (min-width: 900px) { width: 75%; } } } article { @media (min-width: 900px) { display: block; @references(article); } }',
