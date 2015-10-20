@@ -29,10 +29,10 @@ let tests = [{
     expected: 'header { color: blue; display: block; margin: 1em; }\nheader aside { width: 25%; }'
 }, {
     message: 'With no params declared, a referencing rule not wrapped in a media query will only match selectors also not wrapped in a media query',
-    fixture: '@reference { article { width: 100%;} @media (min-width: 900px) { article { width: 75%; } } } article { display: block; @references article all; }',
-    expected: 'article { display: block; width: 100%; } @media (min-width: 900px) { article { width: 75%; } }'
+    fixture: '@reference { article { width: 100%;} @media (min-width: 900px) { article { width: 75%; } } } article { display: block; @references article; }',
+    expected: 'article { display: block; width: 100%; }'
 }, {
-    message: 'With the all flag set, a referencing rule not wrapped in a media query will match the rule&#39;s selector at any defined media query',
+    message: "With the all flag set, a referencing rule not wrapped in a media query will match the rule's selector at any defined media query",
     fixture: '@reference { article { width: 100%;} @media (min-width: 900px) { article { width: 75%; } } } article { display: block; @references article all; }',
     expected: 'article { display: block; width: 100%; } @media (min-width: 900px) { article { width: 75%; } }'
 }, {
