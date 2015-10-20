@@ -4,6 +4,3 @@ node_js:
   - stable
   - "0.12"
   - "4.1.0"
-branches:
-  only:
-    - master
