@@ -28,15 +28,14 @@ let tests = [{
     fixture: '@reference { header { color: blue; display: block; aside { width: 25%; } } } header { @references header all; display: block; margin: 1em; }',
     expected: 'header { color: blue; display: block; margin: 1em; }\nheader aside { width: 25%; }'
 }, {
-    message: 'With no params declared, a referencing rule not wrapped in a media query will only match selectors also not wrapped in a media query',
+    message: 'With no params declared, a referencing rule not wrapped in a @references-media query will only match selectors also not wrapped in a media query',
     fixture: '@reference { article { width: 100%;} @media (min-width: 900px) { article { width: 75%; } } } article { display: block; @references article; }',
     expected: 'article { display: block; width: 100%; }'
-}];
-/*, { :: will reenable when ready to implement
-    message: "With the all flag set, a referencing rule not wrapped in a media query will match the rule's selector at any defined media query",
-    fixture: '@reference { article { width: 100%;} @media (min-width: 900px) { article { width: 75%; } } } article { display: block; @references article all; }',
-    expected: 'article { display: block; width: 100%; } @media (min-width: 900px) { article { width: 75%; } }'
 }, {
+    message: "When wrapped in a @references-media block, @references() requests will return matches from the requested media query",
+    fixture: '@reference { article { width: 100%;} @media (min-width: 900px) { article { width: 75%; } } } article { display: block; @references-media (min-width: 900px) { @references article all; } }',
+    expected: 'article { display: block; width: 100%; } @media (min-width: 900px) { article { width: 75%; } }'
+}/*, {
     message: 'referencing selectors from inside a media query should result in the match of the selector in only that media query',
     fixture: '@reference { article { width: 100%; @media (min-width: 900px) { width: 75%; } } } article { @media (min-width: 900px) { display: block; @references article; } }',
     expected: 'article { display: block; width: 100%; } @media (min-width: 900px) { article { width: 75%; } }'
@@ -44,7 +43,8 @@ let tests = [{
     message: 'if a specific media query is specified as a param when refencing, only match for requested the media query regardless of the requesting rule&#39s media query is',
     fixture: '@reference { article { width: 100%; @media (min-width: 900px) { width: 75%; } } } article { @media (min-width: 900px) { display: block; @references article; } }',
     expected: 'article { display: block; width: 100%; } @media (min-width: 900px) { article { width: 75%; } }'
-}*/
+}*/];
+
 function process (css, options) {
     return postcss().use(atImport()).use(nested()).use(plugin(options)).process(css).css;
 }
