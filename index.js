@@ -164,7 +164,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                 if (ref === term[objParam]) {
                     // TODO :: pass obj to extractMatchingDecls instead of pushing to the refSelectorArray
                     // move trim to ref being compared
-                    destination.push(ref.trim());
+                    extractMatchingDecls(destination, obj);
                     array.splice(index, 1);
                 }
             });
@@ -215,10 +215,6 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             }
         };
 
-        // terms and params are a string at this point.  Convert to an array of
-        // well defined objects for cleaner processing
-        var processedTerms = [];
-
         terms.forEach(function(term) {
             var obj = {
                 all: false,
@@ -234,7 +230,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             // clean any whitespaces which might surround commas after param
             // extraction and assign the term to obj.name
             obj.name = term.trim();
-
+// TODO :: figure out where processedTerms went
             processedTerms.push(obj);
         });
 
@@ -243,7 +239,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             // any of our requested terms
             var matchedRefSelectors = [];
 
-            handleExactMatches(reference, "name", processedTerms, matchedRefSelectors);
+            handleExactMatches(reference, "name", processedTerms, matches.decls);
             handleRelationshipMatches(reference, matchedRefSelectors, processedTerms, matches.decls, matches.relationships);
         });
 
