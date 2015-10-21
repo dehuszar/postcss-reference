@@ -90,31 +90,6 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         });
     };
 
-    var testExactMatch = function testExactMatch(item, array, prop) {
-        debugger;
-        obj.selectors.filter(function(ref) {
-            array.forEach(function (obj) {
-                if (item === obj[prop]) {
-                    return true;
-                }
-            });
-
-            return false;
-        });
-    };
-
-    var testRelationExistsIn = function testSelectorExistsIn(item, array, prop) {
-        var value = false;
-
-        array.forEach(function (obj) {
-            if (item.indexOf(obj[prop]) === 0) {
-                value = true;
-            }
-        });
-
-        return value;
-    };
-
     var extractMatchingDecls = function extractMatchingDecls(matchArray, rule) {
 
         rule.walkDecls(function(decl) {
@@ -171,15 +146,30 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         return dup;
     };
 
-    // var handleExactMatches = function handleExactMatches(obj, objParam, termsArray, destination) {
-    //     obj.selectors.filter(function(ref) {
-    //         var hasRelation = testRelationExistsIn(ref, termsArray, objParam);
-    //
-    //         if (hasRelation) {
-    //             destination.push(ref.trim());
-    //         }
-    //     });
-    // };
+    var testRelationExistsIn = function testSelectorExistsIn(ref, terms, prop) {
+        var value = false;
+
+        terms.forEach(function (term) {
+            if (ref.indexOf(term[prop]) === 0) {
+                value = true;
+            }
+        });
+
+        return value;
+    };
+
+    var handleExactMatches = function handleExactMatches(obj, objParam, termsArray, destination) {
+        obj.selectors.filter(function(ref) {
+            termsArray.forEach(function (term, index, array) {
+                if (ref === term[objParam]) {
+                    // TODO :: pass obj to extractMatchingDecls instead of pushing to the refSelectorArray
+                    // move trim to ref being compared
+                    destination.push(ref.trim());
+                    array.splice(index, 1);
+                }
+            });
+        });
+    };
 
     var handleRelationshipMatches = function handleRelationshipMatches(obj, matchedRefSelArray, termsArray, declDest, ruleDest) {
         matchedRefSelArray.forEach(function(selector, index, selectors) {
@@ -252,14 +242,9 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             // Strip out any selectors in our current reference rule which don't match
             // any of our requested terms
             var matchedRefSelectors = [];
-            var isMatch = testExactMatch(reference, processedTerms, "name");
-            var hasRelation = testRelationExistsIn(reference, processedTerms, "name");
 
-            if (isMatch) {
-                handleExactMatches(reference, "name", processedTerms, matchedRefSelectors);
-            } else if (hasRelation) {
-                handleRelationshipMatches(reference, matchedRefSelectors, processedTerms, matches.decls, matches.relationships);
-            }
+            handleExactMatches(reference, "name", processedTerms, matchedRefSelectors);
+            handleRelationshipMatches(reference, matchedRefSelectors, processedTerms, matches.decls, matches.relationships);
         });
 
         return matches;
