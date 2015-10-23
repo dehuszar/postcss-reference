@@ -81,6 +81,25 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                         css.insertAfter(rule, newRule);
                     });
 
+                    // sort results so they output in the original order referenced
+                    if (matches.mqRelationships.length) {
+                        sortResults(matches.mqRelationships);
+                    }
+
+                    matches.mqRelationships.forEach(function(mq) {
+                        var newAtRule = postcss.atRule({
+                            name: "media",
+                            params: mq.mediaQuery
+                        });
+
+                        for (var n = 0; n < mq.nodes.length; n++) {
+                            var node = mq.nodes[n];
+                            newAtRule.append(node);
+                        }
+
+                        css.insertAfter(rule, newAtRule);
+                    });
+
                     node.remove();
                 }
             });
@@ -166,14 +185,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         matches = {
             decls: [],
             relationships: [],
-            mqDecls: {
-                mediaQuery: null,
-                nodes: []
-            },
-            mqRelationships: {
-                mediaQuery: null,
-                nodes: []
-            }
+            mqRelationships: []
         };
 
         // extract our @references() contents and split selectors into an array
@@ -227,12 +239,10 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                 for (var term = 0; term < processedTerms.length; term++) {
                     var termObj = processedTerms[term];
 
-                    if (selector === termObj.name) {
+                    if (selector === termObj.name && mqsMatch) {
                         // if it's an explicit match and not wrapped in a mediaQuery
-                        if (mqsMatch) {
-                            extractMatchingDecls(matches.decls, reference);
-                        }
-                    } else if (reference.selector.indexOf(termObj.name) === 0 && termObj.all) {
+                        extractMatchingDecls(matches.decls, reference);
+                    } else if (selector.indexOf(termObj.name) === 0 && termObj.all) {
                         // otherwise, if the it's not an explicit match, but the 'all' flag is set
                         // and the selector describes a relationship to the term, gather
                         // those references for our matches array
@@ -240,8 +250,23 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                         // matches like .button .primary, .button.primary, or .button > .primary
                         var safeChars = [" ", ".", "#", "+", "~", ">", ":"];
 
-                        if (reference.selector.length > termObj.name.length &&
-                            safeChars.indexOf(reference.selector.charAt(termObj.name.length)) === 0) {
+                        if (selector === termObj.name && !!refMq) {
+                            if (matches.mqRelationships && matches.mqRelationships.length) {
+                                // TODO :: extract function declaration out from for loop
+                                find(matches.mqRelationships, function (relationship, index, array) {
+                                    if (relationship.mediaQuery === refMq) {
+                                        extractMatchingRelationships(matches.mqRelationships[index].nodes, reference);
+                                    }
+                                });
+                            } else {
+                                var newObj = {};
+                                newObj.mediaQuery = refMq;
+                                newObj.nodes = [];
+                                matches.mqRelationships.push(newObj);
+                                extractMatchingRelationships(matches.mqRelationships[0].nodes, reference);
+                            }
+                        } else if (selector.length > termObj.name.length &&
+                            safeChars.indexOf(selector.charAt(termObj.name.length)) === 0) {
                                 extractMatchingRelationships(matches.relationships, reference);
                         }
                     }
