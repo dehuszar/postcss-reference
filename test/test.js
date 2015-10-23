@@ -24,6 +24,10 @@ let tests = [{
     fixture: '@reference{ @import "test/imports/header.css" } header { @references header; display: block; margin: 1em; }',
     expected: 'header { color: blue; padding: 0; box-sizing: border-box; width: 100%; display: block; margin: 1em; }'
 }, {
+    message: 'referenced selectors which are related to the requested selectors and have the "all" flag set, will have their related rules inserted after the requesting rule',
+    fixture: '@reference { header { color: blue; display: block; } header aside { width: 25%; } } header { @references header all; display: block; margin: 1em; }',
+    expected: 'header { color: blue; display: block; margin: 1em; }\nheader aside { width: 25%; }'
+}, {
     message: 'referenced selectors which contain nested selectors (using postcss-nested) and have the "all" flag set, will have their nested rules inserted after the requesting rule',
     fixture: '@reference { header { color: blue; display: block; aside { width: 25%; } } } header { @references header all; display: block; margin: 1em; }',
     expected: 'header { color: blue; display: block; margin: 1em; }\nheader aside { width: 25%; }'
@@ -32,10 +36,14 @@ let tests = [{
     fixture: '@reference { article { width: 100%;} @media (min-width: 900px) { article { width: 75%; } } } article { display: block; @references article; }',
     expected: 'article { display: block; width: 100%; }'
 }, {
+    message: 'If both the reference rule and the requesting declaration are wrapped in matching media queries, the media query and referenced rule will be merged into the requesting rule',
+    fixture: '@reference { article { width: 100%;} @media (min-width: 900px) { article { width: 75%; } } } @media (min-width: 900px) { article { display: block; @references article; } }',
+    expected: '@media (min-width: 900px) { article { display: block; width: 75%; } }'
+}/*, {
     message: "When wrapped in a @references-media block, @references() requests will return matches from the requested media query",
     fixture: '@reference { article { width: 100%;} @media (min-width: 900px) { article { width: 75%; } } } article { display: block; @references-media (min-width: 900px) { @references article all; } }',
     expected: 'article { display: block; width: 100%; } @media (min-width: 900px) { article { width: 75%; } }'
-}/*, {
+}, {
     message: 'referencing selectors from inside a media query should result in the match of the selector in only that media query',
     fixture: '@reference { article { width: 100%; @media (min-width: 900px) { width: 75%; } } } article { @media (min-width: 900px) { display: block; @references article; } }',
     expected: 'article { display: block; width: 100%; } @media (min-width: 900px) { article { width: 75%; } }'
