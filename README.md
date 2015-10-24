@@ -21,7 +21,7 @@ TODO's for the 1.0 release:
 
 ##Basic syntax:
 
-Rules placed in the `@reference` block are mapped to a comparison array and discarded from the AST.  Rules from your stylesheet which then use an `@references selectorName` declaration will have their requested selector compared against the rules in your comparison array.  Matching rules from the `@reference` block will then have their declarations merged into your requesting rules' declarations where the originating `@references selectorName` request was made.  Preference is given to the requesting rule; meaning, if both rules have declarations with the same property name, such as "display", the property from the `@reference` block will be ignored.  This is to ensure that your stylesheets rules will *always override* referenced rules.
+Rules placed in the `@reference` block are mapped to a comparison array and discarded from the AST.  Rules from your stylesheet which then use an `@references selectorName;` declaration will have their requested selector compared against the rules in your comparison array.  Matching rules from the `@reference` block will then have their declarations merged into your requesting rules' declarations where the originating `@references selectorName;` request was made.  Preference is given to the requesting rule; meaning, if both rules have declarations with the same property name, such as "display", the property from the `@reference` block will be ignored.  This is to ensure that your stylesheets rules will *always override* referenced rules.
 
 ```css
 /* Input */
@@ -82,7 +82,7 @@ header h1 {
     font-family: Arial;
 }
 
-// .widget header is ignored as this rule is not a match, pseudoclass, sibling, or descendent of the requesting rule.
+/* .widget header is ignored as this rule is not a match, pseudoclass, sibling, or descendent of the requesting rule. */
 ```
 
 ##Using `@import`:
@@ -127,6 +127,72 @@ button {
     background-color: #E6E6E6;
     text-decoration: none;
     border-radius: 2px;
+}
+```
+##Media Queries
+Additionally, [Postcss Reference] can read rules from inside media queries.  At present, items can be referenced across matching media queries, or if a non-media query wrapped rule references a selector with the 'all' flag, and the requested reference rules have matches wrapped in any media queries.  For example:
+
+```css
+/* Input */
+@reference {
+    article {
+        width: 100%;
+    }
+
+    @media (min-width: 900px) {
+        article {
+            width: 75%;
+        }
+    }
+}
+
+@media (min-width: 900px) {
+    article {
+        display: block;
+        @references article;
+    }
+}
+
+/* Output */
+@media (min-width: 900px) {
+    article {
+        display: block;
+        width: 75%;
+    }
+}
+```
+
+...or...
+
+```css
+/* Input */
+@reference {
+    article {
+        width: 100%;
+    }
+
+    @media (min-width: 900px) {
+        article {
+            width: 75%;
+        }
+    }
+}
+
+article {
+    display: block;
+    @references article all;
+}
+
+/* Output */
+article {
+    display: block;
+    width: 100%;
+}
+
+@media (min-width: 900px) {
+    article {
+        width: 75%;
+    }
 }
 ```
 
