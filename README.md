@@ -152,7 +152,9 @@ Additionally, [Postcss Reference] can read rules from inside media queries.  At 
         @references article;
     }
 }
+```
 
+```css
 /* Output */
 @media (min-width: 900px) {
     article {
@@ -182,7 +184,9 @@ article {
     display: block;
     @references article all;
 }
+```
 
+```css
 /* Output */
 article {
     display: block;
