@@ -69,6 +69,8 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                     });
 
                     for (var m in matches.decls) {
+                        // insertBefore appears to strip out raws utilized by css hacks like `*width`
+                        matches.decls[m].prop = matches.decls[m].raws.before + matches.decls[m].prop;
                         rule.insertBefore(node, matches.decls[m]);
                     }
 
@@ -151,10 +153,17 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     };
 
     var findDuplicates = function findDuplicates(matchArray, node, childParam) {
-        var dup = null;
+        var dup = null,
+            matchRaws = "",
+            nodeRaws = "";
 
         find(matchArray, function(match, index, array) {
-            if (match[childParam] === node[childParam]) {
+            if (childParam === "prop") {
+                matchRaws = match.raws.before;
+                nodeRaws = node.raws.before;
+            }
+
+            if (matchRaws + match[childParam] === nodeRaws + node[childParam]) {
                 dup = index;
             }
         });
