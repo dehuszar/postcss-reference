@@ -10,14 +10,21 @@ var _postcss = require('postcss');
 
 var _postcss2 = _interopRequireDefault(_postcss);
 
-var _indexJs = require('../../index.js');
+var _postcssImport = require('postcss-import');
 
-var _indexJs2 = _interopRequireDefault(_indexJs);
+var _postcssImport2 = _interopRequireDefault(_postcssImport);
+
+var _postcssNested = require('postcss-nested');
+
+var _postcssNested2 = _interopRequireDefault(_postcssNested);
+
+var _postcssReference = require('postcss-reference');
+
+var _postcssReference2 = _interopRequireDefault(_postcssReference);
+
+// import plugin from '../../index.js';
 
 var _packageJson = require('../../package.json');
-
-var atImport = require("postcss-import");
-var nested = require("postcss-nested");
 
 var tests = [{
     message: 'should match requested selector',
@@ -58,7 +65,7 @@ var tests = [{
 }];
 
 function process(css, options) {
-    return (0, _postcss2['default'])().use(atImport()).use(nested()).use((0, _indexJs2['default'])(options)).process(css).css;
+    return (0, _postcss2['default'])().use((0, _postcssImport2['default'])()).use((0, _postcssNested2['default'])()).use((0, _postcssReference2['default'])()).process(css).css;
 }
 
 (0, _tape2['default'])(_packageJson.name, function (t) {
@@ -72,6 +79,6 @@ function process(css, options) {
 
 (0, _tape2['default'])('should use the postcss plugin api', function (t) {
     t.plan(2);
-    t.ok((0, _indexJs2['default'])().postcssVersion, 'should be able to access version');
-    t.equal((0, _indexJs2['default'])().postcssPlugin, _packageJson.name, 'should be able to access name');
+    t.ok((0, _postcssReference2['default'])().postcssVersion, 'should be able to access version');
+    t.equal((0, _postcssReference2['default'])().postcssPlugin, _packageJson.name, 'should be able to access name');
 });

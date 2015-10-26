@@ -2,9 +2,10 @@
 
 import test from 'tape';
 import postcss from 'postcss';
-var atImport = require("postcss-import");
-var nested = require("postcss-nested");
-import plugin from '../../index.js';
+import atImport from 'postcss-import';
+import nested from 'postcss-nested';
+import reference from 'postcss-reference';
+// import plugin from '../../index.js';
 import {name} from '../../package.json';
 
 let tests = [{
@@ -46,7 +47,7 @@ let tests = [{
 }];
 
 function process (css, options) {
-    return postcss().use(atImport()).use(nested()).use(plugin(options)).process(css).css;
+    return postcss().use(atImport()).use(nested()).use(reference()).process(css).css;
 }
 
 test(name, t => {
@@ -60,6 +61,6 @@ test(name, t => {
 
 test('should use the postcss plugin api', t => {
     t.plan(2);
-    t.ok(plugin().postcssVersion, 'should be able to access version');
-    t.equal(plugin().postcssPlugin, name, 'should be able to access name');
+    t.ok(reference().postcssVersion, 'should be able to access version');
+    t.equal(reference().postcssPlugin, name, 'should be able to access name');
 });
