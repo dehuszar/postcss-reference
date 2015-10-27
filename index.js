@@ -10,6 +10,11 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     // Work with options here
 
     var referenceRules = [];
+    var removeComments = function removeComments(css) {
+        css.walkComments(function (comment) {
+            comment.remove();
+        });
+    };
     var findReferenceableRules = function findReferenceableRules(css) {
         // Walk through list of rules in @reference blocks, push them into the
         // referenceRules array and then remove them from the AST so they don't
@@ -75,18 +80,9 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                     }
 
                     // sort results so they output in the original order referenced
-                    if (matches.relationships.length) {
-                        sortResults(matches.relationships);
+                    if (matches.mqRelationships.length) {
+                        sortResults(matches.mqRelationships, "params");
                     }
-
-                    matches.relationships.forEach(function(newRule) {
-                        css.insertAfter(rule, newRule);
-                    });
-
-                    // sort results so they output in the original order referenced
-                    // if (matches.mqRelationships.length) {
-                    //     sortResults(matches.mqRelationships);
-                    // }
 
                     // TODO :: should be doing this in matchReferences when assembling matches array
                     matches.mqRelationships.forEach(function(mq) {
@@ -105,6 +101,15 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                         } else {
                             css.insertAfter(node, newAtRule);
                         }
+                    });
+
+                    // sort results so they output in the original order referenced
+                    if (matches.relationships.length) {
+                        sortResults(matches.relationships);
+                    }
+
+                    matches.relationships.forEach(function(newRule) {
+                        css.insertAfter(rule, newRule);
                     });
 
                     node.remove();
@@ -144,11 +149,12 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                 if (dup !== null) {
                     // walk through each decl in rule and discard all matching decls
                     // from dup before merging remaining decls
-                    rule.walkDecls(function(decl) {
-                        var dupDecl = findDuplicates(matchArray[dup].nodes, decl, "prop");
-
-                        matchArray[dup].nodes[dupDecl].remove();
-                    });
+                    extractMatchingDecls(matchArray[dup].nodes, rule);
+                    // rule.walkDecls(function(decl) {
+                    //     var dupDecl = findDuplicates(matchArray[dup].nodes, decl, "prop");
+                    //
+                    //     // matchArray[dup].nodes[dupDecl].remove();
+                    // });
                 } else {
                     // otherwise add to the declarations list
                     matchArray.push(rule);
@@ -194,6 +200,16 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         });
 
         return dup;
+    };
+
+    var remapSelectors = function remapSelectors(refSelectors, reqSelector, term) {
+        var refSelector;
+
+        for (var i = 0; i < refSelectors.length; i++) {
+            refSelectors[i] = refSelectors[i].replace(term, reqSelector);
+        }
+        refSelector = refSelectors.join(', ');
+        return refSelector;
     };
 
     var testRelationExistsIn = function testSelectorExistsIn(ref, terms, prop) {
@@ -276,11 +292,14 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                     if (selector === termObj.name && mqsMatch) {
                         // if it's an explicit match and not wrapped in a mediaQuery
                         if (refMq === null) {
+                            reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
                             extractMatchingDecls(matches.decls, reference);
                         } else {
                             if (matches.mqRelationships && matches.mqRelationships.length) {
+                                reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
                                 extractMatchingMqs(matches.mqRelationships, reference, refMq);
                             } else {
+                                reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
                                 createMatchingMq(matches.mqRelationships, reference, refMq);
                             }
                         }
@@ -297,9 +316,11 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
                                 // if the names match and there is a wrapping media query
                                 if (refMq === null) {
+                                    reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
                                     extractMatchingRelationships(matches.relationships, reference);
                                 } else {
                                     if (matches.mqRelationships && matches.mqRelationships.length) {
+                                        reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
                                         extractMatchingMqs(matches.mqRelationships, reference, refMq);
                                         // TODO :: extract function declaration out from for loop
                                         // find(matches.mqRelationships, function (relationship, index, array) {
@@ -313,6 +334,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                                         // newObj.nodes = [];
                                         // matches.mqRelationships.push(newObj);
                                         // extractMatchingRelationships(matches.mqRelationships[0].nodes, reference);
+                                        reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
                                         createMatchingMq(matches.mqRelationships, reference, refMq);
                                     }
                                 }
@@ -326,6 +348,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     };
 
     return function (css, result) {
+        removeComments(css);
         findReferenceableRules(css);
         findReferences(css);
     };
