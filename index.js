@@ -86,7 +86,9 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
                     // TODO :: should be doing this in matchReferences when assembling matches array
                     matches.mqRelationships.forEach(function(mq) {
-                        var newAtRule = postcss.atRule({
+                        var targetAtRule;
+
+                        targetAtRule = postcss.atRule({
                             name: "media",
                             params: mq.mediaQuery
                         });
@@ -269,7 +271,9 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
         for (var ref = 0; ref < referenceRules.length; ref++) {
             var refMq = null,
-                reference = referenceRules[ref];
+                reference = referenceRules[ref],
+                matchedSelectorList = [],
+                reducedSelectorMatches = [];
 
             if (reference.parent.type === "atrule" &&
                 reference.parent.name === "media") {
@@ -278,54 +282,126 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
             mqsMatch = (reqMq === refMq);
 
+            // Compare reference rule selectors against the resquested terms
             for (var sel = 0; sel < reference.selectors.length; sel++) {
                 var selector = reference.selectors[sel];
 
                 for (var term = 0; term < processedTerms.length; term++) {
-                    var termObj = processedTerms[term];
+                    var termObj = processedTerms[term],
+                        safeChars = [" ", ".", "#", "+", "~", ">", ":"],
+                        matchedSelector = {
+                            selector: selector,
+                            type: null
+                        };
 
-                    if (selector === termObj.name && mqsMatch) {
-                        // if it's an explicit match and not wrapped in a mediaQuery
-                        if (refMq === null) {
-                            reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
-                            extractMatchingDecls(matches.decls, reference);
-                        } else {
-                            if (matches.mqRelationships && matches.mqRelationships.length) {
-                                reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
-                                extractMatchingMqs(matches.mqRelationships, reference, refMq);
-                            } else {
-                                reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
-                                createMatchingMq(matches.mqRelationships, reference, refMq);
-                            }
+                    if (selector.indexOf(termObj.name) === 0) {
+                        if (selector === termObj.name) {
+                            matchedSelector.type = "exact";
+                        } else if (selector.length > termObj.name.length &&
+                            safeChars.indexOf(selector.charAt(termObj.name.length)) === 0) {
+                            matchedSelector.type = "relative";
                         }
-                    } else if (selector.indexOf(termObj.name) === 0 && termObj.all) {
+
+                        if (matchedSelector.type !== null) {
+                            matchedSelectorList.push(matchedSelector);
+                        }
+                    }
+                }
+            }
+
+            // reducedSelectorMatches = matchedSelectorList.map(function(m) {
+            //     return m.selector;
+            // }).join(", ");
+                // TODO :: loop through each selector, look for a match with any
+                // term in terms and create new matchingSelectors array to store
+                // matchedSelector objects, discarding any non-matching selectors
+
+                // If matchedSelectors.length === 1, mqsMatch === true, and matchType === exact,
+                // push reference decls to matches.decls
+                // If matchedSelectors.length === 1, mqsMatch === true, and matchType === related,
+                // push reference rule to matches.relationships
+                // If matchedSelectors.length === 1, mqsMatch === false, and matchType === exact,
+                // push reference rule to matches.mqRelationships
+                // If matchedSelectors.length > 1 and mqsMatch === true
+                // push reference rule to matches.relationships
+                // If matchedSelectors.length > 1, mqsMatch === false, reqMq === null, and refMq === !null
+                // push reference rule to matches.mqRelationships
+
+                // Everything else gets handled by reference-media
+
+                // var matchedSelector = {
+                //     selector: null,
+                //     matchType: null
+                // }
+
+            if (matchedSelectorList.length && mqsMatch) {
+                if (matchedSelectorList.length === 1 &&
+                    matchedSelectorList[0].type === "exact") {
+                        reference.selector = remapSelectors(reducedSelectorMatches, node.parent.selector, termObj.name);
+                        extractMatchingDecls(matches.decls, reference);
+                }
+
+                if (matchedSelectorList.length === 1 &&
+                    matchedSelectorList[0].type === "related") {
+                        reference.selector = remapSelectors(reducedSelectorMatches, node.parent.selector, termObj.name);
+                        extractMatchingRelationships(matches.relationships, reference);
+                }
+
+                if (matchedSelectorList.length > 1) {
+                    reference.selector = remapSelectors(reducedSelectorMatches, node.parent.selector, termObj.name);
+                    extractMatchingRelationships(matches.relationships, reference);
+                }
+            }
+
+            if (matchedSelectorList.length > 1 && !mqsMatch) {
+                reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
+                createMatchingMq(matches.mqRelationships, reference, refMq);
+            }
+
+                // for (var term = 0; term < processedTerms.length; term++) {
+                //     var termObj = processedTerms[term];
+
+                    // if (selector === termObj.name && mqsMatch) {
+                    //     // if it's an explicit match and not wrapped in a mediaQuery
+                    //     if (refMq === null) {
+                    //         reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
+                    //         extractMatchingDecls(matches.decls, reference);
+                    //     } else {
+                    //         if (matches.mqRelationships && matches.mqRelationships.length) {
+                    //             reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
+                    //             extractMatchingMqs(matches.mqRelationships, reference, refMq);
+                    //         } else {
+                    //             reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
+                    //             createMatchingMq(matches.mqRelationships, reference, refMq);
+                    //         }
+                    //     }
+                    // } else if (selector.indexOf(termObj.name) === 0 && termObj.all) {
                         // otherwise, if the it's not an explicit match, but the 'all' flag is set
                         // and the selector describes a relationship to the term, gather
                         // those references for our matches array
                         // i.e. prevent matches with .button like .button-primary, but allow
                         // matches like .button .primary, .button.primary, or .button > .primary
-                        var safeChars = [" ", ".", "#", "+", "~", ">", ":"];
-
-                        if (selector.length > termObj.name.length &&
-                            safeChars.indexOf(selector.charAt(termObj.name.length)) === 0) {
-
-                                // if the names match and there is a wrapping media query
-                                if (refMq === null) {
-                                    reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
-                                    extractMatchingRelationships(matches.relationships, reference);
-                                } else {
-                                    if (matches.mqRelationships && matches.mqRelationships.length) {
-                                        reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
-                                        extractMatchingMqs(matches.mqRelationships, reference, refMq);
-                                    } else {
-                                        reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
-                                        createMatchingMq(matches.mqRelationships, reference, refMq);
-                                    }
-                                }
-                        }
-                    }
-                }
-            }
+                    //     var safeChars = [" ", ".", "#", "+", "~", ">", ":"];
+                    //
+                    //     if (selector.length > termObj.name.length &&
+                    //         safeChars.indexOf(selector.charAt(termObj.name.length)) === 0) {
+                    //
+                    //             // if the names match and there is a wrapping media query
+                    //             if (refMq === null) {
+                    //                 reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
+                    //                 extractMatchingRelationships(matches.relationships, reference);
+                    //             } else {
+                    //                 if (matches.mqRelationships && matches.mqRelationships.length) {
+                    //                     reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
+                    //                     extractMatchingMqs(matches.mqRelationships, reference, refMq);
+                    //                 } else {
+                    //                     reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
+                    //                     createMatchingMq(matches.mqRelationships, reference, refMq);
+                    //                 }
+                    //             }
+                    //     }
+                    // }
+                // }
         }
 
         return matches;
