@@ -150,11 +150,6 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                     // walk through each decl in rule and discard all matching decls
                     // from dup before merging remaining decls
                     extractMatchingDecls(matchArray[dup].nodes, rule);
-                    // rule.walkDecls(function(decl) {
-                    //     var dupDecl = findDuplicates(matchArray[dup].nodes, decl, "prop");
-                    //
-                    //     // matchArray[dup].nodes[dupDecl].remove();
-                    // });
                 } else {
                     // otherwise add to the declarations list
                     matchArray.push(rule);
@@ -322,18 +317,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                                     if (matches.mqRelationships && matches.mqRelationships.length) {
                                         reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
                                         extractMatchingMqs(matches.mqRelationships, reference, refMq);
-                                        // TODO :: extract function declaration out from for loop
-                                        // find(matches.mqRelationships, function (relationship, index, array) {
-                                        //     if (relationship.mediaQuery === refMq) {
-                                        //         extractMatchingRelationships(matches.mqRelationships[index].nodes, reference);
-                                        //     }
-                                        // });
                                     } else {
-                                        // var newObj = {};
-                                        // newObj.mediaQuery = refMq;
-                                        // newObj.nodes = [];
-                                        // matches.mqRelationships.push(newObj);
-                                        // extractMatchingRelationships(matches.mqRelationships[0].nodes, reference);
                                         reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
                                         createMatchingMq(matches.mqRelationships, reference, refMq);
                                     }
