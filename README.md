@@ -2,6 +2,9 @@
 
 [PostCSS] plugin for referencing selectors' rules from CSS files and defined rulesets.  Will not output rules unless directly referenced in your stylesheet.  Concept follows LESS's [@import (reference) 'filename'](http://lesscss.org/features/#import-options-reference) functionality but with slightly different syntax.  The goal for the plugin is to allow for the kinds of advanced usage of LESS's `@extend` and `@import(reference)` methods as outlined in [this article on Semantic Remapping](https://medium.com/@dehuszar/semantic-remapping-with-css-pre-processors-906ba1a9910c) for PostCSS.  The Plugin can not currently replicate [all examples for this article](http://codepen.io/collection/DoEGWB/), but that is the current goal of the plugin.
 
+### WARNING
+This is still an early, un-tagged version.  While the plugin largely does what I intend at this time, there are bugs to be fixed, optimizations to make, and features to add which may change how your output is constructed.  Use with caution.
+
 [PostCSS]: https://github.com/postcss/postcss
 [ci-img]:  https://travis-ci.org/dehuszar/postcss-reference.svg
 [ci]:      https://travis-ci.org/dehuszar/postcss-reference
