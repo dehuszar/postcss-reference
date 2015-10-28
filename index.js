@@ -75,7 +75,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
                     for (var m in matches.decls) {
                         // insertBefore appears to strip out raws utilized by css hacks like `*width`
-                        matches.decls[m].prop = matches.decls[m].raws.before + matches.decls[m].prop;
+                        matches.decls[m].prop = matches.decls[m].raws.before.trim() + matches.decls[m].prop;
                         rule.insertBefore(node, matches.decls[m]);
                     }
 
@@ -95,13 +95,13 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
                         for (var n = 0; n < mq.nodes.length; n++) {
                             var mqNode = mq.nodes[n];
-                            newAtRule.append(mqNode);
+                            targetAtRule.append(mqNode);
                         }
 
                         if (node.parent.type === 'rule') {
-                            css.insertAfter(node.parent, newAtRule);
+                            css.insertAfter(node.parent, targetAtRule);
                         } else {
-                            css.insertAfter(node, newAtRule);
+                            css.insertAfter(node, targetAtRule);
                         }
                     });
 
@@ -184,10 +184,10 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         find(matchArray, function(match, index, array) {
             if (childParam === "prop") {
                 if (match.raws && match.raws.before) {
-                    matchRaws = match.raws.before;
+                    matchRaws = match.raws.before.trim();
                 }
                 if (node.raws && node.raws.before) {
-                    nodeRaws = node.raws.before;
+                    nodeRaws = node.raws.before.trim();
                 }
             }
 
@@ -203,7 +203,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         var refSelector;
 
         for (var i = 0; i < refSelectors.length; i++) {
-            refSelectors[i] = refSelectors[i].replace(term, reqSelector);
+            refSelectors[i] = refSelectors[i].selector.replace(term, reqSelector);
         }
         refSelector = refSelectors.join(', ');
         return refSelector;
@@ -272,8 +272,8 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         for (var ref = 0; ref < referenceRules.length; ref++) {
             var refMq = null,
                 reference = referenceRules[ref],
-                matchedSelectorList = [],
-                reducedSelectorMatches = [];
+                matchedSelectorList = [];
+                // reducedSelectorMatches = [];
 
             if (reference.parent.type === "atrule" &&
                 reference.parent.name === "media") {
@@ -337,25 +337,27 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             if (matchedSelectorList.length && mqsMatch) {
                 if (matchedSelectorList.length === 1 &&
                     matchedSelectorList[0].type === "exact") {
-                        reference.selector = remapSelectors(reducedSelectorMatches, node.parent.selector, termObj.name);
+                        reference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
                         extractMatchingDecls(matches.decls, reference);
-                }
-
-                if (matchedSelectorList.length === 1 &&
-                    matchedSelectorList[0].type === "related") {
-                        reference.selector = remapSelectors(reducedSelectorMatches, node.parent.selector, termObj.name);
+                } else if (matchedSelectorList.length === 1 &&
+                    matchedSelectorList[0].type === "relative" &&
+                    termObj.all) {
+                        reference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
                         extractMatchingRelationships(matches.relationships, reference);
-                }
-
-                if (matchedSelectorList.length > 1) {
-                    reference.selector = remapSelectors(reducedSelectorMatches, node.parent.selector, termObj.name);
+                } else if (matchedSelectorList.length > 1 && termObj.all) {
+                    reference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
                     extractMatchingRelationships(matches.relationships, reference);
                 }
-            }
-
-            if (matchedSelectorList.length > 1 && !mqsMatch) {
-                reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
-                createMatchingMq(matches.mqRelationships, reference, refMq);
+            } else if (matchedSelectorList.length &&
+                !mqsMatch &&
+                termObj.all &&
+                reqMq === null) {
+                    reference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
+                    if (!matches.mqRelationships.length) {
+                        createMatchingMq(matches.mqRelationships, reference, refMq);
+                    } else {
+                        extractMatchingMqs(matches.mqRelationships, reference, refMq);
+                    }
             }
 
                 // for (var term = 0; term < processedTerms.length; term++) {
