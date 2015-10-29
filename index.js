@@ -177,7 +177,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
                 for (var term = 0; term < processedTerms.length; term++) {
                     var termObj = processedTerms[term],
-                        safeChars = [" ", ".", "#", "+", "~", ">", ":"],
+                        safeChars = [" ", ".", "#", "+", "~", ">", ":", "["],
                         matchedSelector = {
                             selector: selector,
                             type: null
@@ -201,26 +201,29 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             if (matchedSelectorList.length && mqsMatch) {
                 if (matchedSelectorList.length === 1 &&
                     matchedSelectorList[0].type === "exact") {
-                        reference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
-                        extractMatchingDecls(matches.decls, reference);
+                        var clonedReference = reference.clone();
+                        clonedReference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
+                        extractMatchingDecls(matches.decls, clonedReference);
                 } else if (matchedSelectorList.length === 1 &&
                     matchedSelectorList[0].type === "relative" &&
                     termObj.all) {
-                        reference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
-                        extractMatchingRelationships(matches.relationships, reference);
+                        clonedReference = reference.clone();
+                        clonedReference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
+                        extractMatchingRelationships(matches.relationships, clonedReference);
                 } else if (matchedSelectorList.length > 1 && termObj.all) {
                     reference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
-                    extractMatchingRelationships(matches.relationships, reference);
+                    extractMatchingRelationships(matches.relationships, clonedReference);
                 }
             } else if (matchedSelectorList.length &&
                 !mqsMatch &&
                 termObj.all &&
                 reqMq === null) {
-                    reference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
+                    clonedReference = reference.clone();
+                    clonedReference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
                     if (!matches.mqRelationships.length) {
-                        createMatchingMq(matches.mqRelationships, reference, refMq);
+                        createMatchingMq(matches.mqRelationships, clonedReference, refMq);
                     } else {
-                        extractMatchingMqs(matches.mqRelationships, reference, refMq);
+                        extractMatchingMqs(matches.mqRelationships, clonedReference, refMq);
                     }
             }
         }
@@ -281,20 +284,24 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                     // check our reference array for any of our terms
                     var matches = matchReferences(referenceRules, node);
 
-                    // TODO :: spin this out into separate function so it can be reused for mqMatching
-                    // if referenced and referencing rules have declarations
-                    // with of same property, defer to the referencing rule
+                    // if referenced and requesting rules have the same property
+                    // declarations, and the requesting rule's copy of the
+                    // declaraction comes after the @references request, defer
+                    // to the requesting rule's declaration
                     rule.walkDecls(function(decl) {
                         matches.decls.forEach(function(match, d, matchedDecls) {
-                            if (decl.prop === match.prop) {
-                                matchedDecls.splice(d, 1);
+                            if (decl.prop === match.prop &&
+                                rule.index(decl) > rule.index(node)) {
+                                    matchedDecls.splice(d, 1);
                             }
                         });
                     });
 
                     for (var m in matches.decls) {
                         // insertBefore appears to strip out raws utilized by css hacks like `*width`
-                        matches.decls[m].prop = matches.decls[m].raws.before.trim() + matches.decls[m].prop;
+                        if (matches.decls[m].raws.before) {
+                            matches.decls[m].prop = matches.decls[m].raws.before.trim() + matches.decls[m].prop;
+                        }
                         rule.insertBefore(node, matches.decls[m]);
                     }
 
