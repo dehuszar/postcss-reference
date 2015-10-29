@@ -4,8 +4,7 @@ import test from 'tape';
 import postcss from 'postcss';
 import atImport from 'postcss-import';
 import nested from 'postcss-nested';
-import reference from 'postcss-reference';
-// import plugin from '../../index.js';
+import reference from '../../index.js';
 import {name} from '../../package.json';
 
 let tests = [{
@@ -32,6 +31,14 @@ let tests = [{
     message: 'referenced selectors which contain nested selectors (using postcss-nested) and have the "all" flag set, will have their nested rules inserted after the requesting rule',
     fixture: '@reference { header { color: blue; display: block; aside { width: 25%; } } } header { @references header all; display: block; margin: 1em; }',
     expected: 'header { color: blue; display: block; margin: 1em; }\nheader aside { width: 25%; }'
+}, {
+    message: "referencing rules where the requesting rule's selector is different from the referenced rule's, the referenced rule's selector will get remapped to the requesting rule's selector",
+    fixture: '@reference { header { color: blue; display: block; aside { width: 25%; } } } footer { @references header all; display: block; margin: 1em; }',
+    expected: 'footer { color: blue; display: block; margin: 1em; }\nfooter aside { width: 25%; }'
+}, {
+    message: "referencing a rule with the all flag will also match hover, focus, or other pseudoclasses or elements",
+    fixture: "@reference { a:hover { text-decoration: underline; } } a { display: block; @references a all; }",
+    expected: "a { display: block; }\na:hover { text-decoration: underline; }"
 }, {
     message: 'With no params declared, a referencing rule not wrapped in a @references-media query will only match selectors also not wrapped in a media query',
     fixture: '@reference { article { width: 100%;} @media (min-width: 900px) { article { width: 75%; } } } article { display: block; @references article; }',

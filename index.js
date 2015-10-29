@@ -7,117 +7,18 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         debug: false
     };
 
-    // Work with options here
-
     var referenceRules = [];
-    var removeComments = function removeComments(css) {
-        css.walkComments(function (comment) {
-            comment.remove();
-        });
-    };
-    var findReferenceableRules = function findReferenceableRules(css) {
-        // Walk through list of rules in @reference blocks, push them into the
-        // referenceRules array and then remove them from the AST so they don't
-        // get output to the compiled CSS unless matched.
-        css.walkAtRules('reference', function(atRule) {
-            if (atRule.parent.name === 'media') {
-                console.log('found it');
+
+    var testRelationExistsIn = function testSelectorExistsIn(ref, terms, prop) {
+        var value = false;
+
+        terms.forEach(function (term) {
+            if (ref.indexOf(term[prop]) === 0) {
+                value = true;
             }
-            atRule.walkRules(function(rule) {
-                referenceRules.push(rule);
-            });
-
-            atRule.remove();
         });
-    };
 
-    var sortResults = function sortResults(array) {
-        // sort relationships alphabetically in descending order so
-        // they will properly append after the original rule
-        array.sort(function (a, b) {
-
-            if (a < b) {
-                return 1;
-            }
-            if (a > b) {
-                return -1;
-            }
-            // a must be equal to b
-            return 0;
-        });
-    };
-
-    var findReferences = function findReferences(css) {
-        // Now that our @reference blocks have been processed
-        // Walk through our rules looking for @references declarations
-        css.walkRules(function(rule) {
-            // TODO :: if rule's selector has a pseudoclass, prepend matches to
-            // the rule
-
-            rule.walk(function(node) {
-
-                if (node.type === 'atrule' &&
-                    node.name === 'references') {
-
-                    // check our reference array for any of our terms
-                    var matches = matchReferences(referenceRules, node);
-
-                    // TODO :: spin this out into separate function so it can be reused for mqMatching
-                    // if referenced and referencing rules have declarations
-                    // with of same property, defer to the referencing rule
-                    rule.walkDecls(function(decl) {
-                        matches.decls.forEach(function(match, d, matchedDecls) {
-                            if (decl.prop === match.prop) {
-                                matchedDecls.splice(d, 1);
-                            }
-                        });
-                    });
-
-                    for (var m in matches.decls) {
-                        // insertBefore appears to strip out raws utilized by css hacks like `*width`
-                        matches.decls[m].prop = matches.decls[m].raws.before.trim() + matches.decls[m].prop;
-                        rule.insertBefore(node, matches.decls[m]);
-                    }
-
-                    // sort results so they output in the original order referenced
-                    if (matches.mqRelationships.length) {
-                        sortResults(matches.mqRelationships, "params");
-                    }
-
-                    // TODO :: should be doing this in matchReferences when assembling matches array
-                    matches.mqRelationships.forEach(function(mq) {
-                        var targetAtRule;
-
-                        targetAtRule = postcss.atRule({
-                            name: "media",
-                            params: mq.mediaQuery
-                        });
-
-                        for (var n = 0; n < mq.nodes.length; n++) {
-                            var mqNode = mq.nodes[n];
-                            targetAtRule.append(mqNode);
-                        }
-
-                        if (node.parent.type === 'rule') {
-                            css.insertAfter(node.parent, targetAtRule);
-                        } else {
-                            css.insertAfter(node, targetAtRule);
-                        }
-                    });
-
-                    // sort results so they output in the original order referenced
-                    if (matches.relationships.length) {
-                        sortResults(matches.relationships);
-                    }
-
-                    matches.relationships.forEach(function(newRule) {
-                        css.insertAfter(rule, newRule);
-                    });
-
-                    node.remove();
-                }
-            });
-        });
+        return value;
     };
 
     var extractMatchingDecls = function extractMatchingDecls(matchArray, rule) {
@@ -174,7 +75,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         newObj.nodes = [];
         destination.push(newObj);
         extractMatchingRelationships(destination[0].nodes, source);
-    }
+    };
 
     var findDuplicates = function findDuplicates(matchArray, node, childParam) {
         var dup = null,
@@ -207,18 +108,6 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         }
         refSelector = refSelectors.join(', ');
         return refSelector;
-    };
-
-    var testRelationExistsIn = function testSelectorExistsIn(ref, terms, prop) {
-        var value = false;
-
-        terms.forEach(function (term) {
-            if (ref.indexOf(term[prop]) === 0) {
-                value = true;
-            }
-        });
-
-        return value;
     };
 
     var matchReferences = function matchReferences(referenceRules, node) {
@@ -298,7 +187,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                         if (selector === termObj.name) {
                             matchedSelector.type = "exact";
                         } else if (selector.length > termObj.name.length &&
-                            safeChars.indexOf(selector.charAt(termObj.name.length)) === 0) {
+                            safeChars.indexOf(selector.charAt(termObj.name.length)) !== -1) {
                             matchedSelector.type = "relative";
                         }
 
@@ -308,31 +197,6 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                     }
                 }
             }
-
-            // reducedSelectorMatches = matchedSelectorList.map(function(m) {
-            //     return m.selector;
-            // }).join(", ");
-                // TODO :: loop through each selector, look for a match with any
-                // term in terms and create new matchingSelectors array to store
-                // matchedSelector objects, discarding any non-matching selectors
-
-                // If matchedSelectors.length === 1, mqsMatch === true, and matchType === exact,
-                // push reference decls to matches.decls
-                // If matchedSelectors.length === 1, mqsMatch === true, and matchType === related,
-                // push reference rule to matches.relationships
-                // If matchedSelectors.length === 1, mqsMatch === false, and matchType === exact,
-                // push reference rule to matches.mqRelationships
-                // If matchedSelectors.length > 1 and mqsMatch === true
-                // push reference rule to matches.relationships
-                // If matchedSelectors.length > 1, mqsMatch === false, reqMq === null, and refMq === !null
-                // push reference rule to matches.mqRelationships
-
-                // Everything else gets handled by reference-media
-
-                // var matchedSelector = {
-                //     selector: null,
-                //     matchType: null
-                // }
 
             if (matchedSelectorList.length && mqsMatch) {
                 if (matchedSelectorList.length === 1 &&
@@ -359,54 +223,120 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                         extractMatchingMqs(matches.mqRelationships, reference, refMq);
                     }
             }
-
-                // for (var term = 0; term < processedTerms.length; term++) {
-                //     var termObj = processedTerms[term];
-
-                    // if (selector === termObj.name && mqsMatch) {
-                    //     // if it's an explicit match and not wrapped in a mediaQuery
-                    //     if (refMq === null) {
-                    //         reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
-                    //         extractMatchingDecls(matches.decls, reference);
-                    //     } else {
-                    //         if (matches.mqRelationships && matches.mqRelationships.length) {
-                    //             reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
-                    //             extractMatchingMqs(matches.mqRelationships, reference, refMq);
-                    //         } else {
-                    //             reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
-                    //             createMatchingMq(matches.mqRelationships, reference, refMq);
-                    //         }
-                    //     }
-                    // } else if (selector.indexOf(termObj.name) === 0 && termObj.all) {
-                        // otherwise, if the it's not an explicit match, but the 'all' flag is set
-                        // and the selector describes a relationship to the term, gather
-                        // those references for our matches array
-                        // i.e. prevent matches with .button like .button-primary, but allow
-                        // matches like .button .primary, .button.primary, or .button > .primary
-                    //     var safeChars = [" ", ".", "#", "+", "~", ">", ":"];
-                    //
-                    //     if (selector.length > termObj.name.length &&
-                    //         safeChars.indexOf(selector.charAt(termObj.name.length)) === 0) {
-                    //
-                    //             // if the names match and there is a wrapping media query
-                    //             if (refMq === null) {
-                    //                 reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
-                    //                 extractMatchingRelationships(matches.relationships, reference);
-                    //             } else {
-                    //                 if (matches.mqRelationships && matches.mqRelationships.length) {
-                    //                     reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
-                    //                     extractMatchingMqs(matches.mqRelationships, reference, refMq);
-                    //                 } else {
-                    //                     reference.selector = remapSelectors(reference.selectors, node.parent.selector, termObj.name);
-                    //                     createMatchingMq(matches.mqRelationships, reference, refMq);
-                    //                 }
-                    //             }
-                    //     }
-                    // }
-                // }
         }
 
         return matches;
+    };
+
+    var sortResults = function sortResults(array) {
+        // sort relationships alphabetically in descending order so
+        // they will properly append after the original rule
+        array.sort(function (a, b) {
+
+            if (a < b) {
+                return 1;
+            }
+            if (a > b) {
+                return -1;
+            }
+            // a must be equal to b
+            return 0;
+        });
+    };
+
+    var removeComments = function removeComments(css) {
+        css.walkComments(function (comment) {
+            comment.remove();
+        });
+    };
+
+    var findReferenceableRules = function findReferenceableRules(css) {
+        // Walk through list of rules in @reference blocks, push them into the
+        // referenceRules array and then remove them from the AST so they don't
+        // get output to the compiled CSS unless matched.
+        css.walkAtRules('reference', function(atRule) {
+            if (atRule.parent.name === 'media') {
+                console.log('found it');
+            }
+            atRule.walkRules(function(rule) {
+                referenceRules.push(rule);
+            });
+
+            atRule.remove();
+        });
+    };
+
+    var findReferences = function findReferences(css) {
+        // Now that our @reference blocks have been processed
+        // Walk through our rules looking for @references declarations
+        css.walkRules(function(rule) {
+            // TODO :: if rule's selector has a pseudoclass, prepend matches to
+            // the rule
+
+            rule.walk(function(node) {
+
+                if (node.type === 'atrule' &&
+                    node.name === 'references') {
+
+                    // check our reference array for any of our terms
+                    var matches = matchReferences(referenceRules, node);
+
+                    // TODO :: spin this out into separate function so it can be reused for mqMatching
+                    // if referenced and referencing rules have declarations
+                    // with of same property, defer to the referencing rule
+                    rule.walkDecls(function(decl) {
+                        matches.decls.forEach(function(match, d, matchedDecls) {
+                            if (decl.prop === match.prop) {
+                                matchedDecls.splice(d, 1);
+                            }
+                        });
+                    });
+
+                    for (var m in matches.decls) {
+                        // insertBefore appears to strip out raws utilized by css hacks like `*width`
+                        matches.decls[m].prop = matches.decls[m].raws.before.trim() + matches.decls[m].prop;
+                        rule.insertBefore(node, matches.decls[m]);
+                    }
+
+                    // sort results so they output in the original order referenced
+                    if (matches.mqRelationships.length) {
+                        sortResults(matches.mqRelationships, "params");
+                    }
+
+                    // TODO :: should be doing this in matchReferences when assembling matches array
+                    matches.mqRelationships.forEach(function(mq) {
+                        var targetAtRule;
+
+                        targetAtRule = postcss.atRule({
+                            name: "media",
+                            params: mq.mediaQuery
+                        });
+
+                        for (var n = 0; n < mq.nodes.length; n++) {
+                            var mqNode = mq.nodes[n];
+                            targetAtRule.append(mqNode);
+                        }
+
+                        if (node.parent.type === 'rule') {
+                            css.insertAfter(node.parent, targetAtRule);
+                        } else {
+                            css.insertAfter(node, targetAtRule);
+                        }
+                    });
+
+                    // sort results so they output in the original order referenced
+                    if (matches.relationships.length) {
+                        sortResults(matches.relationships);
+                    }
+
+                    matches.relationships.forEach(function(newRule) {
+                        css.insertAfter(rule, newRule);
+                    });
+
+                    node.remove();
+                }
+            });
+        });
     };
 
     return function (css, result) {
