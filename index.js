@@ -100,13 +100,11 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         return dup;
     };
 
-    var remapSelectors = function remapSelectors(refSelectors, reqSelector, term) {
-        var refSelector;
+    var remapSelector = function remapSelectors(refSelector, reqSelector, term) {
 
-        for (var i = 0; i < refSelectors.length; i++) {
-            refSelectors[i] = refSelectors[i].selector.replace(term, reqSelector);
-        }
-        refSelector = refSelectors.join(', ');
+        // for (var i = 0; i < refSelectors.length; i++) {
+            refSelector = refSelector.replace(term, reqSelector);
+        // }
         return refSelector;
     };
 
@@ -162,7 +160,6 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             var refMq = null,
                 reference = referenceRules[ref],
                 matchedSelectorList = [];
-                // reducedSelectorMatches = [];
 
             if (reference.parent.type === "atrule" &&
                 reference.parent.name === "media") {
@@ -171,7 +168,18 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
             mqsMatch = (reqMq === refMq);
 
-            // Compare reference rule selectors against the resquested terms
+            // Clone the reference rule so we can safely mutate it
+            reference = reference.clone();
+            // Compare clonded reference rule selectors against the resquested terms
+            // For each selector in reference.selectors that is not at least a relative match
+            // splice it from the selectors array
+
+            // If what's left in the rule.selectors array is greater than 1, and
+            // each rule in the rule.selectors isn't an exact match to a term
+            // from the terms list, it is a defacto relative match,
+            // otherwise test for exact and relative string matching before
+            // determining extraction path
+
             for (var sel = 0; sel < reference.selectors.length; sel++) {
                 var selector = reference.selectors[sel];
 
@@ -179,16 +187,25 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                     var termObj = processedTerms[term],
                         safeChars = [" ", ".", "#", "+", "~", ">", ":", "["],
                         matchedSelector = {
-                            selector: selector,
-                            type: null
+                            name: selector,
+                            type: null,
+                            remap: null
                         };
 
                     if (selector.indexOf(termObj.name) === 0) {
                         if (selector === termObj.name) {
                             matchedSelector.type = "exact";
                         } else if (selector.length > termObj.name.length &&
+                            termObj.all &&
                             safeChars.indexOf(selector.charAt(termObj.name.length)) !== -1) {
-                            matchedSelector.type = "relative";
+                                matchedSelector.type = "relative";
+                                matchedSelector.term = termObj.name;
+                        }
+
+                        matchedSelector.remap = remapSelector(matchedSelector.name, node.parent.selector, termObj.name);
+
+                        if (termObj.all) {
+                            matchedSelector.scope = "all";
                         }
 
                         if (matchedSelector.type !== null) {
@@ -198,33 +215,52 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                 }
             }
 
-            if (matchedSelectorList.length && mqsMatch) {
-                if (matchedSelectorList.length === 1 &&
-                    matchedSelectorList[0].type === "exact") {
-                        var clonedReference = reference.clone();
-                        clonedReference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
-                        extractMatchingDecls(matches.decls, clonedReference);
-                } else if (matchedSelectorList.length === 1 &&
-                    matchedSelectorList[0].type === "relative" &&
-                    termObj.all) {
-                        clonedReference = reference.clone();
-                        clonedReference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
-                        extractMatchingRelationships(matches.relationships, clonedReference);
-                } else if (matchedSelectorList.length > 1 && termObj.all) {
-                    reference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
-                    extractMatchingRelationships(matches.relationships, clonedReference);
-                }
-            } else if (matchedSelectorList.length &&
-                !mqsMatch &&
-                termObj.all &&
-                reqMq === null) {
-                    clonedReference = reference.clone();
-                    clonedReference.selector = remapSelectors(matchedSelectorList, node.parent.selector, termObj.name);
-                    if (!matches.mqRelationships.length) {
-                        createMatchingMq(matches.mqRelationships, clonedReference, refMq);
+            if (matchedSelectorList.length > 0) {
+                // for (var mSel = 0; mSel < matchedSelectorList.length; mSel++) {
+                    // var matchedSelectorObj = matchedSelectorList[mSel];
+                    // var remappedReference = reference.clone();
+                var matchedSelectorObj,
+                    joinedNames = matchedSelectorList.map(function(match) {
+                        return match.remap;
+                    }).join(', '),
+                    allExactMatches = matchedSelectorList.every(function(match) {
+                        return match.type === "exact";
+                    }),
+                    scopeAll = matchedSelectorList.some(function(match) {
+                        return match.scope === "all";
+                    });
+
+                if (matchedSelectorList > 1) {
+                    matchedSelectorObj = {
+                        name: joinedNames,
+                        scope: scope
+                    };
+                    if (allExactMatches) {
+                        matchedSelectorObj.type = "exact";
                     } else {
-                        extractMatchingMqs(matches.mqRelationships, clonedReference, refMq);
+                        matchedSelectorObj.type = "relative";
                     }
+                } else {
+                    matchedSelectorObj = matchedSelectorList[0];
+                    matchedSelectorObj.name = matchedSelectorObj.remap;
+                    delete matchedSelectorObj.remap;
+                }
+
+                reference.selector = matchedSelectorObj.name;
+
+                if (mqsMatch) {
+                    if (matchedSelectorObj.type === "exact") {
+                        extractMatchingDecls(matches.decls, reference);
+                    } else {
+                        extractMatchingRelationships(matches.relationships, reference);
+                    }
+                } else if (!mqsMatch && reqMq === null && matchedSelectorObj.scope === "all") {
+                    if (!matches.mqRelationships.length) {
+                        createMatchingMq(matches.mqRelationships, reference, refMq);
+                    } else {
+                        extractMatchingMqs(matches.mqRelationships, reference, refMq);
+                    }
+                }
             }
         }
 
