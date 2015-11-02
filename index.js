@@ -29,7 +29,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             // check for duplicates in our list of matches
             dup = findDuplicates(matchArray, decl, "prop");
 
-            if (dup !== null) {
+            if (dup !== null && decl.value.charAt(0) !== '-') {
                 // if it's a dupe, replace existing rule
                 matchArray[dup].replaceWith(decl);
             } else {
@@ -101,11 +101,35 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     };
 
     var remapSelector = function remapSelectors(refSelector, reqSelector, term) {
-
-        // for (var i = 0; i < refSelectors.length; i++) {
-            refSelector = refSelector.replace(term, reqSelector);
-        // }
+        refSelector = refSelector.replace(term, reqSelector);
         return refSelector;
+    };
+
+    var prependRaws = function prependRaws(source) {
+        for (var d = 0; d < source.length; d++) {
+            if (source[d].raws.before) {
+                source[d].prop = source[d].raws.before.trim() + source[d].prop;
+            }
+        }
+    };
+
+// borrowed from jonathantneal's clone gist :: https://gist.github.com/jonathantneal/e27c16ba19a3941ac95b
+    var cloneReference = function cloneReference(node, deep, keepParent) {
+    	if (typeof node !== 'object') return node;
+
+    	var cloned = new node.constructor();
+
+    	Object.keys(node).forEach(function (key) {
+    		var value = node[key];
+
+    		if (keepParent && key === 'parent' || key === 'source') cloned[key] = value;
+    		else if (value instanceof Array) cloned[key] = deep ? value.map(function (child) {
+    			return cloneReference(child, true, true);
+    		}) : [];
+    		else cloned[key] = cloneReference(value, deep);
+    	});
+
+    	return cloned;
     };
 
     var matchReferences = function matchReferences(referenceRules, node) {
@@ -169,7 +193,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             mqsMatch = (reqMq === refMq);
 
             // Clone the reference rule so we can safely mutate it
-            reference = reference.clone();
+            reference = cloneReference(reference, true, true);
             // Compare clonded reference rule selectors against the resquested terms
             // For each selector in reference.selectors that is not at least a relative match
             // splice it from the selectors array
@@ -216,9 +240,6 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             }
 
             if (matchedSelectorList.length > 0) {
-                // for (var mSel = 0; mSel < matchedSelectorList.length; mSel++) {
-                    // var matchedSelectorObj = matchedSelectorList[mSel];
-                    // var remappedReference = reference.clone();
                 var matchedSelectorObj,
                     joinedNames = matchedSelectorList.map(function(match) {
                         return match.remap;
@@ -230,7 +251,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                         return match.scope === "all";
                     });
 
-                if (matchedSelectorList > 1) {
+                if (matchedSelectorList.length > 1) {
                     matchedSelectorObj = {
                         name: joinedNames,
                         scope: scope
@@ -309,7 +330,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         // Now that our @reference blocks have been processed
         // Walk through our rules looking for @references declarations
         css.walkRules(function(rule) {
-            // TODO :: if rule's selector has a pseudoclass, prepend matches to
+            // TODO :: if rule's selector has a ':reference()' pseudoclass, prepend matches to
             // the rule
 
             rule.walk(function(node) {
@@ -333,22 +354,25 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                         });
                     });
 
-                    for (var m in matches.decls) {
-                        // insertBefore appears to strip out raws utilized by css hacks like `*width`
-                        if (matches.decls[m].raws.before) {
-                            matches.decls[m].prop = matches.decls[m].raws.before.trim() + matches.decls[m].prop;
-                        }
-                        rule.insertBefore(node, matches.decls[m]);
+                    // walk through all matched declarations and make sure our raws are prepended
+                    prependRaws(matches.decls);
+                    for (var d = 0; d < matches.decls.length; d++) {
+                        rule.insertBefore(node, matches.decls[d]);
+                    }
+
+                    // loop through each decl in each matches.relationship and prepend raws
+                    for (var r = 0; r < matches.relationships.length; r++) {
+                        prependRaws(matches.relationships[r].nodes);
                     }
 
                     // sort results so they output in the original order referenced
-                    if (matches.mqRelationships.length) {
+                    if (matches.mqRelationships.length && matches.mqRelationships.length > 1) {
                         sortResults(matches.mqRelationships, "params");
                     }
 
-                    // TODO :: should be doing this in matchReferences when assembling matches array
-                    matches.mqRelationships.forEach(function(mq) {
-                        var targetAtRule;
+                    for (var m = 0; m < matches.mqRelationships.length; m++) {
+                        var mq = matches.mqRelationships[m],
+                            targetAtRule;
 
                         targetAtRule = postcss.atRule({
                             name: "media",
@@ -357,6 +381,8 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
                         for (var n = 0; n < mq.nodes.length; n++) {
                             var mqNode = mq.nodes[n];
+
+                            prependRaws(mqNode.nodes);
                             targetAtRule.append(mqNode);
                         }
 
@@ -365,10 +391,10 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                         } else {
                             css.insertAfter(node, targetAtRule);
                         }
-                    });
+                    }
 
                     // sort results so they output in the original order referenced
-                    if (matches.relationships.length) {
+                    if (matches.relationships.length && matches.relationships.length > 1) {
                         sortResults(matches.relationships);
                     }
 
