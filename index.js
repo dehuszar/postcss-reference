@@ -21,6 +21,14 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         return value;
     };
 
+    var objectExistsInArray = function objectExistsInArray(array, param, test) {
+        var result = array.find(function (obj, index, array) {
+            return obj[param] === test;
+        });
+
+        return Boolean(result);
+    };
+
     var extractMatchingDecls = function extractMatchingDecls(matchArray, rule) {
 
         rule.walkDecls(function(decl) {
@@ -46,7 +54,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         newObj.mediaQuery = mq;
         newObj.nodes = [];
         destination.push(newObj);
-        extractMatchingRelationships(destination[0].nodes, source);
+        extractMatchingRelationships(destination[destination.length - 1].nodes, source);
     };
 
     var findDuplicates = function findDuplicates(matchArray, node, childParam) {
@@ -254,7 +262,8 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                         extractMatchingRelationships(matches.relationships, reference);
                     }
                 } else if (!mqsMatch && reqMq === null && matchedSelectorObj.scope === "all") {
-                    if (!matches.mqRelationships.length) {
+                    if (!matches.mqRelationships.length ||
+                        objectExistsInArray(matches.mqRelationships, "mediaQuery", refMq) === false) {
                         createMatchingMq(matches.mqRelationships, reference, refMq);
                     } else {
                         extractMatchingMqs(matches.mqRelationships, reference, refMq);
@@ -284,11 +293,14 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         // referenceRules array and then remove them from the AST so they don't
         // get output to the compiled CSS unless matched.
         css.walkAtRules('reference', function(atRule) {
-            if (atRule.parent.name === 'media') {
-                console.log('found it');
-            }
-            atRule.walkRules(function(rule) {
-                referenceRules.push(rule);
+            atRule.walk(function(refNode) {
+                if (refNode.type === "rule") {
+                    referenceRules.push(refNode);
+                } else if (refNode.type === "atrule") {
+                    refNode.walkRules(function(refMqNode) {
+                        referenceRules.push(refMqNode);
+                    });
+                }
             });
 
             atRule.remove();
