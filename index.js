@@ -24,41 +24,13 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     var extractMatchingDecls = function extractMatchingDecls(matchArray, rule) {
 
         rule.walkDecls(function(decl) {
-            var dup = null;
-
-            // check for duplicates in our list of matches
-            dup = findDuplicates(matchArray, decl, "prop");
-
-            if (dup !== null && decl.value.charAt(0) !== '-') {
-                // if it's a dupe, replace existing rule
-                matchArray[dup].replaceWith(decl);
-            } else {
-                // otherwise add to the declarations list
-                matchArray.push(decl);
-            }
+            matchArray.push(decl);
         });
     };
 
     var extractMatchingRelationships = function extractMatchingRelationships(matchArray, rule) {
 
-        if (!matchArray.length) {
-            matchArray.push(rule);
-        } else {
-            matchArray.forEach(function(match) {
-                var dup = null;
-
-                dup = findDuplicates(matchArray, rule, "selector");
-
-                if (dup !== null) {
-                    // walk through each decl in rule and discard all matching decls
-                    // from dup before merging remaining decls
-                    extractMatchingDecls(matchArray[dup].nodes, rule);
-                } else {
-                    // otherwise add to the declarations list
-                    matchArray.push(rule);
-                }
-            });
-        }
+        matchArray.push(rule);
     };
 
     var extractMatchingMqs = function extractMatchingMqs(destination, source, mq) {
@@ -226,13 +198,13 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                                 matchedSelector.term = termObj.name;
                         }
 
-                        matchedSelector.remap = remapSelector(matchedSelector.name, node.parent.selector, termObj.name);
-
-                        if (termObj.all) {
-                            matchedSelector.scope = "all";
-                        }
-
                         if (matchedSelector.type !== null) {
+                            matchedSelector.remap = remapSelector(matchedSelector.name, node.parent.selector, termObj.name);
+
+                            if (termObj.all) {
+                                matchedSelector.scope = "all";
+                            }
+
                             matchedSelectorList.push(matchedSelector);
                         }
                     }
@@ -252,10 +224,16 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                     });
 
                 if (matchedSelectorList.length > 1) {
-                    matchedSelectorObj = {
-                        name: joinedNames,
-                        scope: scope
-                    };
+                    matchedSelectorObj = {};
+
+                    if (joinedNames) {
+                        matchedSelectorObj.name = joinedNames;
+                    }
+
+                    if (scopeAll) {
+                        matchedSelectorObj.scope = scopeAll;
+                    }
+
                     if (allExactMatches) {
                         matchedSelectorObj.type = "exact";
                     } else {
@@ -289,18 +267,9 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     };
 
     var sortResults = function sortResults(array) {
-        // sort relationships alphabetically in descending order so
-        // they will properly append after the original rule
+        // invert array sorting order so rules are output in original order
         array.sort(function (a, b) {
-
-            if (a < b) {
-                return 1;
-            }
-            if (a > b) {
-                return -1;
-            }
-            // a must be equal to b
-            return 0;
+            return 1;
         });
     };
 
