@@ -293,14 +293,8 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         // referenceRules array and then remove them from the AST so they don't
         // get output to the compiled CSS unless matched.
         css.walkAtRules('reference', function(atRule) {
-            atRule.walk(function(refNode) {
-                if (refNode.type === "rule") {
-                    referenceRules.push(refNode);
-                } else if (refNode.type === "atrule") {
-                    refNode.walkRules(function(refMqNode) {
-                        referenceRules.push(refMqNode);
-                    });
-                }
+            atRule.walkRules(function(rule) {
+                referenceRules.push(rule);
             });
 
             atRule.remove();
