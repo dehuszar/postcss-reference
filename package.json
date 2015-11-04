@@ -1,6 +1,6 @@
 {
   "name": "postcss-reference",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "PostCSS plugin for referencing selectors' rules from CSS files and defined rulesets.",
   "scripts": {
     "prepublish": "babel test/test.js --out-dir dist --ignore /test/",
