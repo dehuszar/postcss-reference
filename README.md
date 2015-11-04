@@ -8,7 +8,8 @@
 
 
 
-##Basic syntax:
+## Basic syntax:
+
 Rules placed in the `@reference` block are mapped to a comparison array and discarded from the AST.  Rules from your style sheet which then use an `@references selectorName;` declaration will have their requested selector compared against the rules in your comparison array.  All instances of `@references` *have* to be declarations.  A `selector:reference(.reference-target) { /* declarations */ }` syntax similar to LESS's extend pseudo-class is forthcoming.  Matching rules from the `@reference` block will then have their declarations merged into your requesting rules' declarations where the originating `@references selectorName;` request was made.
 
 
@@ -34,7 +35,7 @@ header {
 }
 ```
 
-##Using the `all` flag:
+## Using the `all` flag:
 
 When a `@references selectorName` declaration uses the 'all' flag, [PostCSS Reference] will look for all selectors in the `@reference` block which begin with the requested selector.
 
@@ -80,7 +81,7 @@ header h1 {
 Note that `header-alt` and `.widget header` are ignored as those rules are not an exact match, pseudo-class, sibling, or descendant of the requesting rule.
 
 
-##Using `@import`:
+## Using `@import`:
 
 (example assumes you have [postcss-import](https://github.com/postcss/postcss-import) installed and configured properly)
 In this example we import the entirety of [Yahoo's PureCSS core library](http://purecss.io/) so that we can reference the `.pure-button` and `.pure-button-primary` rules.  The unreferenced rules in pure.css are discarded.
@@ -124,7 +125,8 @@ button {
     border-radius: 2px;
 }
 ```
-##Media Queries
+## Media Queries
+
 Additionally, [Postcss Reference] can read rules from inside media queries.  At present, items can be referenced across matching media queries, or if a non-media-query wrapped rule references a selector with the 'all' flag, and the requested reference rules have matches wrapped in any media queries.  For example:
 
 ```css
@@ -283,6 +285,7 @@ Note that the `.layout-article-full` class has been remapped to .content-wrapper
 So long as the rules being referenced come before the rule whose `@references` declaration is making the request; i.e. put your dependencies first.  This allows for very powerful CSS component abstractions.
 
 ## Usage
+
 At present, [Postcss Reference] does not take any options.  That may be subject to change.
 ```js
 postcss([ require('postcss-reference') ])
@@ -320,6 +323,7 @@ If you are importing libraries such as Bootstrap, Pure, or Foundation, you will 
 cssnano might be easier.  ;-)
 
 ## TODO's for the next release:
+
  - Referencing rules from disparate media queries using `@references-media` atRules.  Presently, [PostCSS Reference] will only match rules that share the same `@media` atRules or if the 'all' flag is set and a requesting rule has no media query, then all media queries for the selector will get matched.  Future functionality will allow for rules at any media query to reference rules at any other explicitly defined media-query.  This would allow a desktop media query to extend rules that may be declared in a mobile media query or even extend rules that have explicitly no media wrapping them.  Examples of why you might want to do that are forthcoming
  - Allow for referencing selectors using [LESS's pseudo-class-style syntax for @extend](http://lesscss.org/features/#import-options-reference-example) `selector:references(selectorName) {}` style of referencing.
  - Source-mapping references
