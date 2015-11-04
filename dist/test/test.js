@@ -37,7 +37,7 @@ var tests = [{
     fixture: '@reference { header, section { padding: 0; } } header { @references header; display: block; margin: 1em; }',
     expected: 'header { padding: 0; display: block; margin: 1em; }'
 }, {
-    message: '@import files into the @reference block and extend rules from inside',
+    message: '@import files into the @reference block and reference them',
     fixture: '@reference { @import "test/imports/header.css" } header { @references header; display: block; margin: 1em; }',
     expected: 'header { color: blue; padding: 0; box-sizing: border-box; width: 100%; display: block; margin: 1em; }'
 }, {
@@ -53,7 +53,15 @@ var tests = [{
     fixture: '@reference { header { color: blue; display: block; aside { width: 25%; } } } footer { @references header all; display: block; margin: 1em; }',
     expected: 'footer { color: blue; display: block; margin: 1em; }\nfooter aside { width: 25%; }'
 }, {
-    message: "referencing a rule with the all flag will also match hover, focus, or other pseudoclasses or elements",
+    message: "referenced rules which contain 'before' raws (like '-' or '*'; often used in CSS hacks) will have those before raws preserved.",
+    fixture: "@reference { h1 { display: block; font-size: 2.2em; font-weight: bold; } .pure-u-1-2, .pure-u-12-24 { width: 50%; *width: 49.9690%; } } .document-title { @references h1, .pure-u-1-2; text-align: center; }",
+    expected: ".document-title { display: block; font-size: 2.2em; font-weight: bold; width: 50%; *width: 49.9690%; text-align: center; }"
+}, {
+    message: "multiple requested selectors which match multiple reference selectors will merge declarations into requesting rule",
+    fixture: "@reference { h1 { display: block; font-size: 2.2em; font-weight: bold; } .pure-u-1-2, .pure-u-12-24 { width: 50%; *width: 49.9690%; } } .document-title { @references h1, .pure-u-1-2; text-align: center; }",
+    expected: ".document-title { display: block; font-size: 2.2em; font-weight: bold; width: 50%; *width: 49.9690%; text-align: center; }"
+}, {
+    message: "referencing a rule with the all flag will also match hover, focus, or other pseudo-classes or -elements",
     fixture: "@reference { a:hover { text-decoration: underline; } } a { display: block; @references a all; }",
     expected: "a { display: block; }\na:hover { text-decoration: underline; }"
 }, {
