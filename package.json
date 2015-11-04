@@ -1,6 +1,6 @@
 {
   "name": "postcss-reference",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "PostCSS plugin for importing CSS files and partials.  Will not output rules unless directly rng' stylesheet; a la LESS's `@import (reference) 'filename'`.  See http://lesscss.org/features/#import-optnce",
   "scripts": {
     "prepublish": "babel test/test.js --out-dir dist --ignore /test/",
