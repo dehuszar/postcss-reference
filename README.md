@@ -317,8 +317,9 @@ If you are importing libraries such as Bootstrap, Pure, or Foundation, you will 
 - [postcss-merge-rules](https://github.com/ben-eb/postcss-merge-rules)
 - [postcss-unique-selectors](https://github.com/ben-eb/postcss-unique-selectors)
 
-cssnano might be easier.  ;)
+cssnano might be easier.  ;-)
 
 ## TODO's for the next release:
  - Referencing rules from disparate media queries using `@references-media` atRules.  Presently, [PostCSS Reference] will only match rules that share the same `@media` atRules or if the 'all' flag is set and a requesting rule has no media query, then all media queries for the selector will get matched.  Future functionality will allow for rules at any media query to reference rules at any other explicitly defined media-query.  This would allow a desktop media query to extend rules that may be declared in a mobile media query or even extend rules that have explicitly no media wrapping them.  Examples of why you might want to do that are forthcoming
  - Allow for referencing selectors using [LESS's pseudo-class-style syntax for @extend](http://lesscss.org/features/#import-options-reference-example) `selector:references(selectorName) {}` style of referencing.
+ - Source-mapping references
