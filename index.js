@@ -112,12 +112,22 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
   	return cloned;
   };
 
+  var findParentMqs = function findParentMqs(mqTestObj) {
+    while (mqTestObj.parent.type !== "root") {
+      if (mqTestObj.parent.type === "atrule" &&
+          mqTestObj.parent.name === "media") {
+            return mqTestObj.parent.params;
+      } else {
+        mqTestObj = mqTestObj.parent;
+      }
+    }
+  };
+
   var matchReferences = function matchReferences(referenceRules, node) {
     var matches,
         terms,
         processedTerms = [],
-        reqMq = null,
-        mqTestObj = node,
+        reqMq = findParentMqs(node) || null,
         mqsMatch = false;
 
     matches = {
@@ -150,15 +160,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
       processedTerms.push(obj);
     });
 
-    while (mqTestObj.parent.type !== "root") {
-      if (mqTestObj.parent.type === "atrule" &&
-          mqTestObj.parent.name === "media") {
-            reqMq = mqTestObj.parent.params;
-            break;
-      } else {
-        mqTestObj = mqTestObj.parent;
-      }
-    }
+
 
     for (var ref = 0; ref < referenceRules.length; ref++) {
       var refMq = null,
@@ -324,7 +326,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     // Now that our @reference blocks have been processed
     // Walk through our rules looking for @references declarations
     css.walkRules(function(rule) {
-      handlePseudoRefs(rule);  
+      handlePseudoRefs(rule);
 
       rule.walk(function(node) {
 
