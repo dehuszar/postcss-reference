@@ -301,12 +301,30 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     });
   };
 
+  var handlePseudoRefs = function handlePseudoRefs(rule) {
+    // check for :references() pseudoclass
+    var pseudoRef = ":references(",
+        pseudoRefIndex = rule.selector.indexOf(pseudoRef),
+        pseudoRefEnd = rule.selector.indexOf(")"),
+        pseudoRefStr = "",
+        newRef;
+
+    if (pseudoRefIndex !== -1) {
+      pseudoRefStr = rule.selector.slice(pseudoRefIndex + pseudoRef.length, pseudoRefEnd);
+      newRef = postcss.atRule({
+        name: 'references',
+        params: pseudoRefStr
+      });
+      rule.prepend(newRef);
+      rule.selector = rule.selector.slice(0, pseudoRefIndex);
+    }
+  };
+
   var findReferences = function findReferences(css) {
     // Now that our @reference blocks have been processed
     // Walk through our rules looking for @references declarations
     css.walkRules(function(rule) {
-      // TODO :: if rule's selector has a ':reference()' pseudoclass, prepend matches to
-      // the rule
+      handlePseudoRefs(rule);  
 
       rule.walk(function(node) {
 
