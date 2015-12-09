@@ -1,3 +1,5 @@
+/* jshint node: true */
+"use strict";
 var postcss = require('postcss');
 var find = require('array-find');
 var referenceableNodes = [];
@@ -112,6 +114,16 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
   	return cloned;
   };
 
+  var findParentSelector = function findParentSelector(testObj) {
+    while (testObj.parent.type !== "root") {
+      if (testObj.parent.type === "rule") {
+            return testObj.parent.selector;
+      } else {
+        testObj = testObj.parent;
+      }
+    }
+  };
+
   var findParentMqs = function findParentMqs(mqTestObj) {
     while (mqTestObj.parent.type !== "root") {
       if (mqTestObj.parent.type === "atrule" &&
@@ -123,11 +135,12 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     }
   };
 
-  var matchReferences = function matchReferences(referenceRules, node) {
+  var matchReferences = function matchReferences(referenceRules, node, targetMq) {
     var matches,
         terms,
         processedTerms = [],
         reqMq = findParentMqs(node) || null,
+        reqSelector = findParentSelector(node),
         mqsMatch = false;
 
     matches = {
@@ -172,7 +185,9 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             refMq = reference.parent.params;
       }
 
-      mqsMatch = (reqMq === refMq);
+      mqsMatch = (reqMq === refMq) ||
+                  targetMq === refMq ||
+                  (targetMq === "" && refMq === null);
 
       // Clone the reference rule so we can safely mutate it
       reference = cloneReference(reference, true, true);
@@ -209,7 +224,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             }
 
             if (matchedSelector.type !== null) {
-              matchedSelector.remap = remapSelector(matchedSelector.name, node.parent.selector, termObj.name);
+              matchedSelector.remap = remapSelector(matchedSelector.name, reqSelector, termObj.name);
 
               if (termObj.all) {
                 matchedSelector.scope = "all";
@@ -333,8 +348,19 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
         if (node.type === 'atrule' &&
             node.name === 'references') {
 
+          let requestingNode;
+          let targetMq;
+
+          if (node.parent.type === 'atrule' &&
+              node.parent.name === 'references-media') {
+                requestingNode = node.parent;
+                targetMq = node.parent.params;
+          } else {
+            requestingNode = node;
+          }
+
           // check our reference array for any of our terms
-          var matches = matchReferences(referenceRules, node);
+          var matches = matchReferences(referenceRules, node, targetMq);
 
           // if referenced and requesting rules have the same property
           // declarations, and the requesting rule's copy of the
@@ -342,9 +368,13 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
           // to the requesting rule's declaration
           rule.walkDecls(function(decl) {
             matches.decls.forEach(function(match, d, matchedDecls) {
+
               if (decl.prop === match.prop &&
-                  rule.index(decl) > rule.index(node)) {
+                  rule.index(decl) > rule.index(requestingNode)) {
                     matchedDecls.splice(d, 1);
+              } else if (decl.prop === match.prop &&
+                  rule.index(decl) < rule.index(requestingNode)) {
+                    decl.remove();
               }
             });
           });
@@ -352,7 +382,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
           // walk through all matched declarations and make sure our raws are prepended
           prependRaws(matches.decls);
           for (var d = 0; d < matches.decls.length; d++) {
-            rule.insertBefore(node, matches.decls[d]);
+            rule.insertBefore(requestingNode, matches.decls[d]);
           }
 
           // loop through each decl in each matches.relationship and prepend raws
@@ -381,10 +411,10 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
               targetAtRule.append(mqNode);
             }
 
-            if (node.parent.type === 'rule') {
-              css.insertAfter(node.parent, targetAtRule);
+            if (requestingNode.parent.type === 'rule') {
+              css.insertAfter(requestingNode.parent, targetAtRule);
             } else {
-              css.insertAfter(node, targetAtRule);
+              css.insertAfter(requestingNode, targetAtRule);
             }
           }
 
@@ -397,7 +427,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             css.insertAfter(rule, newRule);
           });
 
-          node.remove();
+          requestingNode.remove();
         }
       });
     });

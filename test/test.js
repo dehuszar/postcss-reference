@@ -57,11 +57,19 @@ let tests = [{
   expected: 'article { display: block; width: 100%; }'
 }, {
   message: 'If both the reference rule and the requesting declaration are wrapped in matching media queries, the media query and referenced rule will be merged into the requesting rule',
-  fixture: '@reference { article { width: 100%;} @media (min-width: 900px) { article { width: 75%; } } } @media (min-width: 900px) { article { display: block; @references article; } }',
+  fixture: '@reference { article { width: 100%; } @media (min-width: 900px) { article { width: 75%; } } } @media (min-width: 900px) { article { display: block; @references article; } }',
   expected: '@media (min-width: 900px) { article { display: block; width: 75%; } }'
 }, {
+  message: 'Referencing a selector that has no media query, when the requesting selector is in a media query will yield a match when the @references request is wrapped with an @references-media at Rule with no params',
+  fixture: '@reference { .my-glorious-selector { color: blue; display: block; } } @media (min-width: 768px) { button { color: black; display: inline-block; @references-media { @references .my-glorious-selector all; } } }',
+  expected: '@media (min-width: 768px) { button { color: blue; display: block } }'
+}, {
+  message: 'Referencing a selector that has a media query, when the requesting selector is in a different media query will yield a match when the @references request is wrapped with an @references-media at Rule with the target media query as a parameter',
+  fixture: '@reference { @media (max-width: 479px) { .my-glorious-selector { color: blue; display: block; } } } @media (min-width: 768px) { button { color: black; display: inline-block; @references-media (max-width: 479px) { @references .my-glorious-selector all; } } }',
+  expected: '@media (min-width: 768px) { button { color: blue; display: block } }'
+}, {
   message: 'If the requesting rule has no media query, but has the all flag set, reference rules which match the selector should return rules from all media-queries',
-  fixture: '@reference { article { width: 100%;} @media (min-width: 900px) { article { width: 75%; } } } article { display: block; @references article all; }',
+  fixture: '@reference { article { width: 100%; } @media (min-width: 900px) { article { width: 75%; } } } article { display: block; @references article all; }',
   expected: 'article { display: block; width: 100%; }\n@media (min-width: 900px) {\n article { width: 75%; } }'
 }];
 
