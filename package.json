@@ -7,6 +7,10 @@
     "test-unformatted": "babel-tape-runner \"dist/test/*.js\"",
     "test": "npm run test-unformatted | tap-spec"
   },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "keywords": [
     "postcss",
     "css",

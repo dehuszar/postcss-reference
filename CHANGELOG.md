@@ -1,5 +1,13 @@
+## PostCSS Reference v1.0.3 (Feb, 20 2016)
+New features
+ - Introduction of `@references-media` AtRule for cross-query matching
+ - Implementation of `:references()` pseudoclass, mimicking LESS's :extend() functionality
+
+Fixed
+ - bug where comma separated references weren't being properly caught if the scope was "all" and the referenced rule was in a media query, but the requesting rule was not
+
 ## PostCSS Reference v1.0.2 (Nov 4, 2015)
-Further updates as I make realize npm's description heading has a character limit
+Further updates as I realize npm's description heading has a character limit
 
 ## PostCSS Reference v1.0.1 (Nov 4, 2015)
 Updating docs and package descriptions

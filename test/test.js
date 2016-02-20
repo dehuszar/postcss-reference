@@ -1,3 +1,4 @@
+/* jshint node: true */
 'use strict';
 
 import test from 'tape';

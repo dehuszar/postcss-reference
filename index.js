@@ -201,11 +201,11 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
       // otherwise test for exact and relative string matching before
       // determining extraction path
 
-      for (var sel = 0; sel < reference.selectors.length; sel++) {
-        var selector = reference.selectors[sel];
+      for (let i = 0; i < reference.selectors.length; i++) {
+        let selector = reference.selectors[i];
 
         for (var term = 0; term < processedTerms.length; term++) {
-          var termObj = processedTerms[term],
+          let termObj = processedTerms[term],
               safeChars = [" ", ".", "#", "+", "~", ">", ":", "["],
               matchedSelector = {
                   name: selector,
@@ -237,7 +237,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
       }
 
       if (matchedSelectorList.length > 0) {
-        var matchedSelectorObj,
+        let matchedSelectorObj,
             joinedNames = matchedSelectorList.map(function(match) {
               return match.remap;
             }).join(', '),
@@ -256,7 +256,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
           }
 
           if (scopeAll) {
-            matchedSelectorObj.scope = scopeAll;
+            matchedSelectorObj.scope = "all";
           }
 
           if (allExactMatches) {
