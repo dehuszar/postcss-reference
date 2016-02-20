@@ -206,6 +206,73 @@ comma separated `@references` requests will return declarations from any matched
 
 Comma separated reference requests can have their own parameters.  So a declaration like `@references header all, footer` would return all exact _and_ related matches for header, but only exact matches for footer.
 
+## Cross media-query references
+
+PostCSS Reference has the unique ability to reference selectors across disparate media queries.
+
+Referencing a selector that has no media query, when the requesting selector is in a media query will yield a match when the `@references` request is wrapped with an `@references-media` at Rule with no params
+
+```css
+  /* Input */
+  @reference {
+    .my-glorious-selector {
+      color: blue;
+      display: block;
+    }
+  }
+
+  @media (min-width: 768px) {
+    button {
+      color: black;
+      display: inline-block;
+
+      @references-media {
+        @references .my-glorious-selector all;
+      }
+    }
+  }  
+
+  /* Output */
+  @media (min-width: 768px) {
+    button {
+      color: blue;
+      display: block
+    }
+  }
+```
+
+Referencing a selector that has a media query, when the requesting selector is in a different media query will yield a match when the `@references` request is wrapped with an `@references-media` at Rule with the target media query as a parameter
+```css
+  /* Input */
+  @reference {
+    @media (max-width: 479px) {
+      .my-glorious-selector {
+        color: blue;
+        display: block;
+      }
+    }
+  }
+
+  @media (min-width: 768px) {
+    button {
+      color: black;
+      display: inline-block;
+
+      @references-media (max-width: 479px) {
+        @references .my-glorious-selector all;
+      }
+    }
+  }
+
+  /* Output */
+  @media (min-width: 768px) {
+    button {
+      color: blue;
+      display: block
+    }
+  }
+```
+
 [PostCSS Reference] has also been tested for use with [PostCSS Nested](https://github.com/postcss/postcss-nested) to allow for referencing nested rules like so:
 
 ```css
@@ -324,6 +391,5 @@ cssnano might be easier.  ;-)
 
 ## TODO's for the next release:
 
- - Referencing rules from disparate media queries using `@references-media` atRules.  Presently, [PostCSS Reference] will only match rules that share the same `@media` atRules or if the 'all' flag is set and a requesting rule has no media query, then all media queries for the selector will get matched.  Future functionality will allow for rules at any media query to reference rules at any other explicitly defined media-query.  This would allow a desktop media query to extend rules that may be declared in a mobile media query or even extend rules that have explicitly no media wrapping them.  Examples of why you might want to do that are forthcoming
  - Allow for referencing selectors using [LESS's pseudo-class-style syntax for @extend](http://lesscss.org/features/#import-options-reference-example) `selector:references(selectorName) {}` style of referencing.
  - Source-mapping references
