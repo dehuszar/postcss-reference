@@ -127,7 +127,7 @@ button {
 ```
 ## Media Queries
 
-Additionally, [Postcss Reference] can read rules from inside media queries.  At present, items can be referenced across matching media queries, or if a non-media-query wrapped rule references a selector with the 'all' flag, and the requested reference rules have matches wrapped in any media queries.  For example:
+Additionally, [Postcss Reference] can read rules from inside media queries.  Items can be referenced across matching media queries, or if a non-media-query wrapped rule references a selector with the 'all' flag, and the requested reference rules have matches wrapped in any media queries.  For example:
 
 ```css
 /* Input */
@@ -210,7 +210,7 @@ Comma separated reference requests can have their own parameters.  So a declarat
 
 PostCSS Reference has the unique ability to reference selectors across disparate media queries.
 
-Referencing a selector that has no media query, when the requesting selector is in a media query will yield a match when the `@references` request is wrapped with an `@references-media` at Rule with no params
+Referencing a selector that has _no media query_, when the requesting selector _is in a media query_ will yield a match if the `@references` request is wrapped with an `@references-media` atRule with no params
 
 ```css
   /* Input */
@@ -241,7 +241,7 @@ Referencing a selector that has no media query, when the requesting selector is 
   }
 ```
 
-Referencing a selector that has a media query, when the requesting selector is in a different media query will yield a match when the `@references` request is wrapped with an `@references-media` at Rule with the target media query as a parameter
+Referencing a selector that has a media query, when the requesting selector is in a _different_ media query will yield a match if the `@references` request is wrapped with an `@references-media` atRule and has the target media query as a parameter
 ```css
   /* Input */
   @reference {
