@@ -373,7 +373,7 @@ postcss()
     .process(/* do your business */);
 ```
 
-[postcss-import](https://github.com/postcss/postcss-import) and [PostCSS Nested](https://github.com/postcss/postcss-nested) are well covered above, so I won't go into further detail here.
+[postcss-import](https://github.com/postcss/postcss-import) (Versions greater than 7.x are not currently working.  A fix is in the works) and [PostCSS Nested](https://github.com/postcss/postcss-nested) are well covered above, so I won't go into further detail here.
 
 The inclusion of [CSS MQPacker](https://github.com/hail2u/node-css-mqpacker) is largely because [PostCSS Reference] does not attempt to optimize media-query matches and will return them as they are referenced.  Having too many media-queries in your CSS can increase the parse time of your style sheet by the browser.  On the other hand, writing your CSS so that there's only a single media-query for each breakpoint, screen type, or orientation combo, severely limits the ability to make composable component abstractions.  This plugin gives you the best of both.
 
