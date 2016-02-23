@@ -391,5 +391,5 @@ cssnano might be easier.  ;-)
 
 ## TODO's for the next release:
 
- - Allow for referencing selectors using [LESS's pseudo-class-style syntax for @extend](http://lesscss.org/features/#import-options-reference-example) `selector:references(selectorName) {}` style of referencing.
+ - Updating to work with latest version of postcss-import (currently only works up to v7.x)
  - Source-mapping references
