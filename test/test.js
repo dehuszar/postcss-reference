@@ -1,12 +1,12 @@
 /* jshint node: true */
 'use strict';
 
-import test from 'tape';
-import postcss from 'postcss';
-import atImport from 'postcss-import';
-import nested from 'postcss-nested';
-import reference from '../../index.js';
-import {name} from '../../package.json';
+const test = require('tape');
+const postcss = require('postcss');
+const atImport = require('postcss-import');
+const nested = require('postcss-nested');
+const reference = require('../index.js');
+import {name} from '../package.json';
 
 let tests = [{
   message: 'should match requested selector',
@@ -74,8 +74,12 @@ let tests = [{
   expected: 'article { display: block; width: 100%; }\n@media (min-width: 900px) {\n article { width: 75%; } }'
 }];
 
+debugger
+
 function process (css, options) {
-  return postcss().use(atImport()).use(nested()).use(reference()).process(css).css;
+  return postcss().use(atImport()).use(nested()).use(reference()).process(css).then(function(result) {
+    return result.css;
+  });
 }
 
 test(name, t => {
@@ -83,7 +87,9 @@ test(name, t => {
 
   tests.forEach(test => {
     let options = test.options || {};
-    t.equal(process(test.fixture, options), test.expected, test.message);
+    process(test.fixture, options).then((result) => {
+      t.equal(result, test.expected, test.message);
+    });
   });
 });
 

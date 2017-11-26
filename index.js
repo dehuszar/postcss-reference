@@ -1,15 +1,11 @@
 /* jshint node: true */
 "use strict";
 var postcss = require('postcss');
-var find = require('array-find');
-var referenceableNodes = [];
 
 module.exports = postcss.plugin('postcss-reference', function (opts) {
   opts = opts || {
     debug: false
   };
-
-  var referenceRules = [];
 
   var testRelationExistsIn = function testSelectorExistsIn(ref, terms, prop) {
     var value = false;
@@ -35,10 +31,12 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     rule.walkDecls(function(decl) {
       matchArray.push(decl);
     });
+    return matchArray;
   };
 
   var extractMatchingRelationships = function extractMatchingRelationships(matchArray, rule) {
     matchArray.push(rule);
+    return matchArray;
   };
 
   var extractMatchingMqs = function extractMatchingMqs(destination, source, mq) {
@@ -82,7 +80,7 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     return dup;
   };
 
-  var remapSelector = function remapSelectors(refSelector, reqSelector, term) {
+  const remapSelector = function remapSelectors(refSelector, reqSelector, term) {
       refSelector = refSelector.replace(term, reqSelector);
       return refSelector;
   };
@@ -95,7 +93,8 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     }
   };
 
-// borrowed from jonathantneal's clone gist :: https://gist.github.com/jonathantneal/e27c16ba19a3941ac95b
+  // borrowed from jonathantneal's clone gist :: https://gist.github.com/jonathantneal/e27c16ba19a3941ac95b
+  // can be deprecated when ready to support Node > v8
   var cloneReference = function cloneReference(node, deep, keepParent) {
   	if (typeof node !== 'object') return node;
 
@@ -138,7 +137,6 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
   var matchReferences = function matchReferences(referenceRules, node, targetMq) {
     var matches,
         terms,
-        processedTerms = [],
         reqMq = findParentMqs(node) || null,
         reqSelector = findParentSelector(node),
         mqsMatch = false;
@@ -155,34 +153,24 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
     // terms and params are a string at this point.  Convert to an array of
     // well defined objects for cleaner processing
-    terms.forEach(function(term) {
-      var obj = {
-          all: false,
-          name: null
+    const processedTerms = terms.map(function(term) {
+      /* assign flag existance as boolean on returned object and
+       * strip out any params from term now that flags are set
+       * (only 'all' for now) from the referencejstatement */
+      return {
+        all: (term.indexOf(" all") !== -1),
+        name: term.replace(" all", '').trim()
       };
-
-      obj.all = (term.indexOf(" all") !== -1);
-      // strip out any params from term now that flags are set
-      // (only 'all' for now)
-      term = term.replace(" all", '');
-
-      // clean any whitespaces which might surround commas after param
-      // extraction and assign the term to obj.name
-      obj.name = term.trim();
-
-      processedTerms.push(obj);
     });
 
-
-
-    for (var ref = 0; ref < referenceRules.length; ref++) {
+   for (var ref = 0; ref < referenceRules.length; ref++) {
       var refMq = null,
-          reference = referenceRules[ref],
+          srcReference = referenceRules[ref],
           matchedSelectorList = [];
 
-      if (reference.parent.type === "atrule" &&
-          reference.parent.name === "media") {
-            refMq = reference.parent.params;
+      if (srcReference.parent.type === "atrule" &&
+          srcReference.parent.name === "media") {
+            refMq = srcReference.parent.params;
       }
 
       mqsMatch = (reqMq === refMq) ||
@@ -190,8 +178,8 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
                   (targetMq === "" && refMq === null);
 
       // Clone the reference rule so we can safely mutate it
-      reference = cloneReference(reference, true, true);
-      // Compare clonded reference rule selectors against the resquested terms
+      const reference = cloneReference(srcReference, true, true);
+      // Compare cloned reference rule selectors against the requested terms
       // For each selector in reference.selectors that is not at least a relative match
       // splice it from the selectors array
 
@@ -201,40 +189,79 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
       // otherwise test for exact and relative string matching before
       // determining extraction path
 
-      for (let i = 0; i < reference.selectors.length; i++) {
-        let selector = reference.selectors[i];
-
-        for (var term = 0; term < processedTerms.length; term++) {
-          let termObj = processedTerms[term],
-              safeChars = [" ", ".", "#", "+", "~", ">", ":", "["],
-              matchedSelector = {
-                  name: selector,
-                  type: null,
-                  remap: null
-              };
-
-          if (selector.indexOf(termObj.name) === 0) {
-            if (selector === termObj.name) {
-              matchedSelector.type = "exact";
-            } else if (selector.length > termObj.name.length &&
-              termObj.all &&
-              safeChars.indexOf(selector.charAt(termObj.name.length)) !== -1) {
-                matchedSelector.type = "relative";
-                matchedSelector.term = termObj.name;
-            }
-
-            if (matchedSelector.type !== null) {
-              matchedSelector.remap = remapSelector(matchedSelector.name, reqSelector, termObj.name);
-
-              if (termObj.all) {
-                matchedSelector.scope = "all";
-              }
-
-              matchedSelectorList.push(matchedSelector);
-            }
+      matchedSelectorList = reference.selectors.filter(function(selector) {
+        const terms = this;
+        return terms.some(term => term.name === selector) ||
+               terms.some(term => term.name !== selector &&
+                 selector.indexOf(term.name) === 0 &&
+                 selector.length > term.name &&
+                 Boolean(term.all));
+      }, processedTerms).map(function(selector) {
+        const terms = this;
+        const safeChars = [" ", ".", "#", "+", "~", ">", ":", "["];
+        const obj = {
+          name: selector,
+          type: null,
+          remap: null
+        };
+        const exactMatch = terms.find((term) => term.name === selector);
+        const relativeMatch = terms.find((term) => {
+          return term.name !== selector &&
+                 selector.indexOf(term.name) === 0 &&
+                 selector.length > term.name &&
+                 Boolean(term.all);
+        });
+        const matchedItem = exactMatch || relativeMatch;
+        if (Boolean(matchedItem)) {
+          obj.remap = remapSelector(obj.name, reqSelector, matchedItem.name);
+ 
+          if (matchedItem.all) {
+            obj.scope = "all";
           }
+          if (Boolean(exactMatch)) {
+            obj.type = 'exact';
+          } else if (Boolean(relativeMatch)) {
+            obj.type = 'relative';
+            obj.term = relativeMatch.name;
+          }
+
+          return Object.freeze(obj);
         }
-      }
+      }, processedTerms);
+/*       for (let i = 0; i < reference.selectors.length; i++) {
+ *         let selector = reference.selectors[i];
+ * 
+ *         for (var term = 0; term < processedTerms.length; term++) {
+ *           let termObj = processedTerms[term],
+ *               safeChars = [" ", ".", "#", "+", "~", ">", ":", "["],
+ *               matchedSelector = {
+ *                   name: selector,
+ *                   type: null,
+ *                   remap: null
+ *               };
+ * 
+ *           if (selector.indexOf(termObj.name) === 0) {
+ *             if (selector === termObj.name) {
+ *               matchedSelector.type = "exact";
+ *             } else if (selector.length > termObj.name.length &&
+ *               termObj.all &&
+ *               safeChars.indexOf(selector.charAt(termObj.name.length)) !== -1) {
+ *                 matchedSelector.type = "relative";
+ *                 matchedSelector.term = termObj.name;
+ *             }
+ * 
+ *             if (matchedSelector.type !== null) {
+ *               matchedSelector.remap = remapSelector(matchedSelector.name, reqSelector, termObj.name);
+ * 
+ *               if (termObj.all) {
+ *                 matchedSelector.scope = "all";
+ *               }
+ * 
+ *               matchedSelectorList.push(matchedSelector);
+ *             }
+ *           }
+ *         }
+ *       } */
 
       if (matchedSelectorList.length > 0) {
         let matchedSelectorObj,
@@ -265,25 +292,30 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
             matchedSelectorObj.type = "relative";
           }
         } else {
-          matchedSelectorObj = matchedSelectorList[0];
-          matchedSelectorObj.name = matchedSelectorObj.remap;
-          delete matchedSelectorObj.remap;
+          matchedSelectorObj = Object.assign({}, matchedSelectorList[0]);
+          if (Boolean(matchedSelectorObj) &&
+              Boolean(matchedSelectorObj.remap)) {
+            if (matchedSelectorObj.name !== matchedSelectorObj.remap) {
+              matchedSelectorObj.name = matchedSelectorObj.remap;
+              delete matchedSelectorObj.remap;
+            }
+          }
         }
 
         reference.selector = matchedSelectorObj.name;
 
         if (mqsMatch) {
           if (matchedSelectorObj.type === "exact") {
-            extractMatchingDecls(matches.decls, reference);
+            matches.decls = extractMatchingDecls(matches.decls, reference);
           } else {
-            extractMatchingRelationships(matches.relationships, reference);
+            matches.relationships = extractMatchingRelationships(matches.relationships, reference);
           }
         } else if (!mqsMatch && reqMq === null && matchedSelectorObj.scope === "all") {
           if (!matches.mqRelationships.length ||
               objectExistsInArray(matches.mqRelationships, "mediaQuery", refMq) === false) {
-                createMatchingMq(matches.mqRelationships, reference, refMq);
+                matches.mqRelationships = createMatchingMq(matches.mqRelationships, reference, refMq);
           } else {
-            extractMatchingMqs(matches.mqRelationships, reference, refMq);
+            matches.mqRelationships = extractMatchingMqs(matches.mqRelationships, reference, refMq);
           }
         }
       }
@@ -305,7 +337,9 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
     });
   };
 
-  var findReferenceableRules = function findReferenceableRules(css) {
+  const findReferenceableRules = function findReferenceableRules(css) {
+
+    let referenceRules = [];
     // Walk through list of rules in @reference blocks, push them into the
     // referenceRules array and then remove them from the AST so they don't
     // get output to the compiled CSS unless matched.
@@ -316,6 +350,8 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
       atRule.remove();
     });
+    
+    return referenceRules;
   };
 
   var handlePseudoRefs = function handlePseudoRefs(rule) {
@@ -335,13 +371,15 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
       rule.prepend(newRef);
       rule.selector = rule.selector.slice(0, pseudoRefIndex);
     }
+
+    return rule;
   };
 
-  var findReferences = function findReferences(css) {
+  var findReferences = function findReferences(css, referenceRules) {
     // Now that our @reference blocks have been processed
     // Walk through our rules looking for @references declarations
     css.walkRules(function(rule) {
-      handlePseudoRefs(rule);
+      rule = handlePseudoRefs(rule);
 
       rule.walk(function(node) {
 
@@ -381,14 +419,17 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
           // walk through all matched declarations and make sure our raws are prepended
           prependRaws(matches.decls);
-          for (var d = 0; d < matches.decls.length; d++) {
-            rule.insertBefore(requestingNode, matches.decls[d]);
-          }
+          /* for (var d = 0; d < matches.decls.length; d++) { */
+          matches.decls.forEach(function(decl) {
+            requestingNode.before(decl);
+          });
 
           // loop through each decl in each matches.relationship and prepend raws
-          for (var r = 0; r < matches.relationships.length; r++) {
-            prependRaws(matches.relationships[r].nodes);
-          }
+          /* for (var r = 0; r < matches.relationships.length; r++) { */
+          matches.relationships.forEach(function(rel) {
+            prependRaws(rel.nodes);
+          });
+          /* } */
 
           // sort results so they output in the original order referenced
           if (matches.mqRelationships.length && matches.mqRelationships.length > 1) {
@@ -435,7 +476,9 @@ module.exports = postcss.plugin('postcss-reference', function (opts) {
 
   return function (css, result) {
     removeComments(css);
-    findReferenceableRules(css);
-    findReferences(css);
+    const referenceRules = findReferenceableRules(css);
+    findReferences(css, referenceRules);
+    result.css = css;
+    return result;
   };
 });
