@@ -1,0 +1,16 @@
+@reference {
+  header {
+    color: blue;
+    display: block;
+  }
+  
+  header {
+    border: 1px solid black;
+  }
+}
+
+header {
+  @references header;
+  display: block;
+  margin: 1em;
+}
