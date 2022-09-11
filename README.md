@@ -50,7 +50,7 @@ When a `@references selectorName` declaration uses the 'all' flag, [PostCSS Refe
         font-family: Arial;
     }
 
-    header-alt {
+    .header-alt {
         color: blue;
         font-family: "Times New Roman";
     }
@@ -78,7 +78,7 @@ header h1 {
 }
 ```
 
-Note that `header-alt` and `.widget header` are ignored as those rules are not an exact match, pseudo-class, sibling, or descendant of the requesting rule.
+Note that `.header-alt` and `.widget header` are ignored as those rules are not an exact match, pseudo-class, sibling, or descendant of the requesting rule.
 
 
 ## Using `@import`:
