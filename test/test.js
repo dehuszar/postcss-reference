@@ -9,10 +9,6 @@ const reference = require('../index.js');
 const {name} = require('../package.json');
 
 let tests = [{
-  message: 'non-matching selectors in selector list get discarded',
-  fixture: '@reference { header, section { padding: 0; } } header { @references header; display: block; margin: 1em; }',
-  expected: 'header { padding: 0; display: block; margin: 1em; }'
-}, {
   message: '@import files into the @reference block and reference them',
   fixture: '@reference { @import "test/imports/header.css" } header { @references header; display: block; margin: 1em; }',
   expected: 'header { color: blue; padding: 0; box-sizing: border-box; width: 100%; display: block; margin: 1em; }'

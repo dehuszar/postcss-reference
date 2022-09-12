@@ -1,0 +1,11 @@
+@reference {
+  header, section {
+    padding: 0;
+  }
+}
+
+header {
+  @references header;
+  display: block;
+  margin: 1em;
+}
