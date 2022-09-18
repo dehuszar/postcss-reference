@@ -9,18 +9,6 @@ const reference = require('../index.js');
 const {name} = require('../package.json');
 
 let tests = [{
-  message: '@import files into the @reference block and reference them',
-  fixture: '@reference { @import "test/imports/header.css" } header { @references header; display: block; margin: 1em; }',
-  expected: 'header { color: blue; padding: 0; box-sizing: border-box; width: 100%; display: block; margin: 1em; }'
-}, {
-  message: 'pseudo-classed references like "selector:references(.another-selector)" will be treated like an @references atrule prepended above any existing declarations',
-  fixture: '@reference { .uppercase { text-transform: uppercase; } } header h1:references(.uppercase) { display: inline-block; }',
-  expected: 'header h1 { text-transform: uppercase; display: inline-block; }'
-}, {
-  message: 'referenced selectors which are related to the requested selectors and have the "all" flag set, will have their related rules inserted after the requesting rule',
-  fixture: '@reference { header { color: blue; display: block; } header aside { width: 25%; } } header { @references header all; display: block; margin: 1em; }',
-  expected: 'header { color: blue; display: block; margin: 1em; }\nheader aside { width: 25%; }'
-}, {
   message: 'referenced selectors which contain nested selectors (using postcss-nested) and have the "all" flag set, will have their nested rules inserted after the requesting rule',
   fixture: '@reference { header { color: blue; display: block; aside { width: 25%; } } } header { @references header all; display: block; margin: 1em; }',
   expected: 'header { color: blue; display: block; margin: 1em; }\nheader aside { width: 25%; }'

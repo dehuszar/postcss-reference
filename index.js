@@ -15,7 +15,7 @@ const plugin = (opts = {}) => {
     },
     AtRule: {
       reference: atRule => findReferenceableRules(atRule, referenceSource),
-      references: atRule => remapReferences(atRule, referenceSource)
+      references: (atRule, { Rule, Declaration }) => remapReferences(atRule, referenceSource, { Rule, Declaration })
     }
   }
 };

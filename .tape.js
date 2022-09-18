@@ -13,5 +13,10 @@ module.exports = {
     message: 'non-matching selectors in selector list get discarded',
     source: 'discard-non-matches.css',
     expect: 'discard-non-matches.expect.css'
-  }
+  },
+  'relative-match-all': {
+    message: 'referenced selectors which are related to the requested selectors and have the "all" flag set, will have their related rules inserted after the requesting rule',
+    source: 'relative-match-all.css',
+    expect: 'relative-match-all.expect.css'
+  },
 };
