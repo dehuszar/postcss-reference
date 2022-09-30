@@ -19,4 +19,14 @@ module.exports = {
     source: 'relative-match-all.css',
     expect: 'relative-match-all.expect.css'
   },
+  'remap-selector-name': {
+    message: "referencing rules where the requesting rule's selector is different from the referenced rule's, the referenced rule's selector will get remapped to the requesting rule's selector",
+    source: 'remap-selector-name.css',
+    expect: 'remap-selector-name.expect.css'
+  },
+  'retain-before-raws': {
+    message: "referenced rules which contain 'before' raws (like '-' or '*'; often used in CSS hacks) will have those before raws preserved.",
+    source: 'retain-before-raws.css',
+    expect: 'retain-before-raws.expect.css'
+  },
 };
