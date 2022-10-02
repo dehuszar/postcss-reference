@@ -1,0 +1,10 @@
+@reference {
+  a:hover {
+    text-decoration: underline;
+  }
+}
+
+a {
+  display: block;
+  @references a all;
+}

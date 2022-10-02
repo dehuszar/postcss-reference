@@ -29,4 +29,9 @@ module.exports = {
     source: 'retain-before-raws.css',
     expect: 'retain-before-raws.expect.css'
   },
+  'pseudo-class-matching': {
+    message: 'referencing a rule with the all flag will also match hover, focus, or other pseudo-classes or -elements',
+    source: 'pseudo-class-matching.css',
+    expect: 'pseudo-class-matching.expect.css'
+  },
 };
