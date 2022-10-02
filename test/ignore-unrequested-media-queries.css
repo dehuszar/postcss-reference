@@ -1,0 +1,16 @@
+@reference {
+  article {
+    width: 100%;
+  }
+  
+  @media (min-width: 900px) {
+    article {
+      width: 75%;
+    }
+  }
+}
+
+article {
+  display: block;
+  @references article;
+}

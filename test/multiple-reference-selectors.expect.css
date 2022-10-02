@@ -1,0 +1,8 @@
+.document-title {
+  display: block;
+  font-size: 2.2em;
+  font-weight: bold;
+  width: 50%;
+  *width: 49.9690%;
+  text-align: center;
+}

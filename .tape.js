@@ -34,4 +34,14 @@ module.exports = {
     source: 'pseudo-class-matching.css',
     expect: 'pseudo-class-matching.expect.css'
   },
+  'multiple-reference-selectors': {
+    message: '@references request includes multiple, comma-separated selectors which match multiple referenceable rules will merge declarations into requesting rule',
+    source: 'multiple-reference-selectors.css',
+    expect: 'multiple-reference-selectors.expect.css'
+  },
+  'ignore-unrequested-media-queries': {
+    message: 'With no params declared, a referencing rule not wrapped in a @references-media query will only match selectors also not wrapped in a media query',
+    source: 'ignore-unrequested-media-queries.css',
+    expect: 'ignore-unrequested-media-queries.expect.css'
+  },
 };
