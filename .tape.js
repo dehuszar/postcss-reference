@@ -44,4 +44,9 @@ module.exports = {
     source: 'ignore-unrequested-media-queries.css',
     expect: 'ignore-unrequested-media-queries.expect.css'
   },
+  'remap-matching-media-queries': {
+    message: 'If both the referenceable rule and the requesting declaration are wrapped in matching media queries, the media query and referenced rule will be merged into the requesting rule',
+    source: 'remap-matching-media-queries.css',
+    expect: 'remap-matching-media-queries.expect.css'
+  },
 };
