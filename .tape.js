@@ -49,4 +49,9 @@ module.exports = {
     source: 'remap-matching-media-queries.css',
     expect: 'remap-matching-media-queries.expect.css'
   },
+  'references-media-atrules-no-mq': {
+    message: 'Referencing a selector that has no media query, when the requesting selector is in a media query will yield a match when the @references request is wrapped with an @references-media at Rule with no params',
+    source: 'references-media-atrules-no-mq.css',
+    expect: 'references-media-atrules-no-mq.expect.css'
+  },
 };
