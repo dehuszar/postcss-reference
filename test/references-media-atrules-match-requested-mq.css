@@ -1,0 +1,24 @@
+@reference {
+  @media (max-width: 479px) {
+    .my-glorious-selector {
+      color: blue;
+      display: block;
+    }
+  }
+
+  @media (min-width: 320px) {
+    .my-unwanted-selector {
+      color: red;
+    }
+  }
+}
+
+@media (min-width: 768px) {
+  button {
+    color: black;
+    display: inline-block;
+    @references-media (max-width: 479px) {
+      @references .my-glorious-selector all;
+    }
+  }
+}
