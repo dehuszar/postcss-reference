@@ -59,4 +59,19 @@ module.exports = {
     source: 'references-media-atrules-match-requested-mq.css',
     expect: 'references-media-atrules-match-requested-mq.expect.css',
   },
+  'references-media-atrules-match-all-mqs': {
+    message: 'If the requesting rule has no media query, but has the all flag set, reference rules which match the selector should return rules from all media-queries',
+    source: 'references-media-atrules-match-all-mqs.css',
+    expect: 'references-media-atrules-match-all-mqs.expect.css'
+  },
+  // 'at-import-support': {
+  //   message: '@import files into the @reference block and reference them',
+  //   source: 'at-import-support.css',
+  //   expect: 'at-import-support.expect.css'
+  // },
+  // 'nested-selector-support': {
+  //   message: 'referenced selectors which contain nested selectors (using postcss-nested) and have the "all" flag set, will have their nested rules inserted after the requesting rule',
+  //   source: 'nested-selector-support.css',
+  //   expect: 'nested-selector-support.expect.css'
+  // },
 };

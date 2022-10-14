@@ -1,0 +1,10 @@
+article {
+  display: block;
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  article {
+    width: 75%;
+  }
+}
