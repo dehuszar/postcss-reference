@@ -1,0 +1,9 @@
+footer {
+  color: blue;
+  display: block;
+  margin: 1em;
+}
+
+footer aside {
+  width: 25%;
+}

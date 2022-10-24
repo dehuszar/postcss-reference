@@ -1,4 +1,14 @@
-## PostCSS Reference v1.0.3 (Feb, 20 2016)
+## PostCSS Reference v2.0.0 (Oct 23, 2022)
+New features
+ - Total rewrite to utilize current PostCSS API (8.4.17)
+
+Breaking changes
+ - removing support for `selector:references(ref)` remapping
+
+Notes
+ - postcss-import and postcss-nested may work but are not yet tested
+
+## PostCSS Reference v1.0.3 (Feb 20, 2016)
 New features
  - Introduction of `@references-media` AtRule for cross-query matching
  - Implementation of `:references()` pseudoclass, mimicking LESS's :extend() functionality

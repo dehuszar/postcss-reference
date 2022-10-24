@@ -1,0 +1,17 @@
+@reference {
+  .my-glorious-selector {
+    color: blue;
+    display: block;
+  }
+}
+
+@media (min-width: 768px) {
+  button {
+    color: black;
+    display: inline-block;
+    
+    @references-media {
+      @references .my-glorious-selector all;
+    }
+  }
+}
