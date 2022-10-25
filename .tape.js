@@ -69,6 +69,11 @@ module.exports = {
     source: 'at-import-support.css',
     expect: 'at-import-support.expect.css'
   },
+  'at-import-relative-parent-support': {
+    message: '@import files into the @reference block and reference them where the import source is located in a folder branching off from a relative parent',
+    source: 'parent-folder-test/folder1/folder2/at-import-relative-parent-support.css',
+    expect: 'parent-folder-test/folder1/folder2/at-import-relative-parent-support.expect.css'
+  },
   // 'nested-selector-support': {
   //   message: 'referenced selectors which contain nested selectors (using postcss-nested) and have the "all" flag set, will have their nested rules inserted after the requesting rule',
   //   source: 'nested-selector-support.css',
