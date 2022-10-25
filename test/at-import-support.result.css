@@ -1,0 +1,8 @@
+header {
+  color: blue;
+  padding: 0;
+  box-sizing: border-box;
+  width: 100%;
+  display: block;
+  margin: 1em;
+}

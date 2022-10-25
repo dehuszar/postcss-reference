@@ -1,22 +1,18 @@
 header {
-    color: blue;
-    display: block;
-
-    aside {
-        width: 25%;
-    }
+  color: blue;
+  display: block;
 }
 
 header h1 {
-    display: block;
-    font-family: Arial;
+  display: block;
+  font-family: Arial;
 }
 
 header, section {
-    padding: 0;
+  padding: 0;
 }
 
 footer, header {
-    box-sizing: border-box;
-    width: 100%;
+  box-sizing: border-box;
+  width: 100%;
 }

@@ -26,7 +26,6 @@
   "homepage": "https://github.com/dehuszar/postcss-reference",
   "devDependencies": {
     "postcss": "^8.4.16",
-    "postcss-import": "^15.0.0",
     "postcss-nested": "^5.0.6",
     "postcss-tape": "^6.0.1"
   },
