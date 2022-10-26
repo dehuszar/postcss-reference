@@ -1,0 +1,9 @@
+@reference {
+  @import "./imports/header.css";
+}
+
+header {
+  @references header;
+  display: block;
+  margin: 1em;
+}

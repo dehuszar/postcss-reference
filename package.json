@@ -1,6 +1,6 @@
 {
   "name": "postcss-reference",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "PostCSS plugin for referencing selectors' rules from CSS files and defined rulesets.",
   "scripts": {
     "test": "postcss-tape"
@@ -26,7 +26,6 @@
   "homepage": "https://github.com/dehuszar/postcss-reference",
   "devDependencies": {
     "postcss": "^8.4.16",
-    "postcss-import": "^15.0.0",
     "postcss-nested": "^5.0.6",
     "postcss-tape": "^6.0.1"
   },

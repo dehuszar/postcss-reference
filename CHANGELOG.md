@@ -1,3 +1,7 @@
+## PostCSS Reference v2.1.0 (Oct 23, 2022)
+New features
+ - Return of @import capabilities with in-plugin logic
+
 ## PostCSS Reference v2.0.0 (Oct 23, 2022)
 New features
  - Total rewrite to utilize current PostCSS API (8.4.17)
