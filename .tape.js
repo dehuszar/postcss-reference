@@ -75,6 +75,12 @@ module.exports = {
     expect: 'parent-folder-test/folder1/folder2/at-import-relative-parent-support.expect.css',
     result: 'parent-folder-test/folder1/folder2/at-import-relative-parent-support.result.css'
   },
+  // FIXME :: Add test which checks safeChars guardrails
+  // 'at-import-remote-url-support': {
+  //   message: '@import files into the @reference block and reference them',
+  //   source: 'at-import-remote-url-support.css',
+  //   expect: 'at-import-remote-url-support.expect.css'
+  // },
   // 'nested-selector-support': {
   //   message: 'referenced selectors which contain nested selectors (using postcss-nested) and have the "all" flag set, will have their nested rules inserted after the requesting rule',
   //   source: 'nested-selector-support.css',
