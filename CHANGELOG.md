@@ -1,3 +1,11 @@
+## PostCSS Reference v2.2.1 (Sept 30, 2024)
+Bugfixes
+ - Fixed issue with common paths not being resolved properly by @import parser
+
+## PostCSS Reference v2.2.0 (Sept 30, 2024)
+Bugfixes
+ - Fixed issue with 2.1.0 release being irrevocably out of sync with npm version
+
 ## PostCSS Reference v2.1.0 (Oct 23, 2022)
 New features
  - Return of @import capabilities with in-plugin logic
