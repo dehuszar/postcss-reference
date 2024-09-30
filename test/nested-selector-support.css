@@ -1,0 +1,16 @@
+@reference {
+  header {
+    color: blue;
+    display: block;
+
+    aside {
+      width: 25%;
+    }
+  }
+}
+
+header {
+  @references header all;
+  display: block;
+  margin: 1em;
+}

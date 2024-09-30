@@ -55,7 +55,7 @@ module.exports = {
     expect: 'references-media-atrules-no-mq.expect.css'
   },
   'references-media-atrules-match-requested-mq': {
-    message: "Requesting a referencable rule that has a media query, when the requesting declaration selector's parent node is in a different media query, will yield a match when the @references request is wrapped with an @references-media at Rule with the target media query as a parameter",
+    message: "Requesting a referenceable rule that has a media query, when the requesting declaration selector's parent node is in a different media query, will yield a match when the @references request is wrapped with an @references-media at Rule with the target media query as a parameter",
     source: 'references-media-atrules-match-requested-mq.css',
     expect: 'references-media-atrules-match-requested-mq.expect.css',
   },
