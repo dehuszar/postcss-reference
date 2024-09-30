@@ -1,0 +1,9 @@
+header {
+  color: blue;
+  display: block;
+  margin: 1em;
+}
+
+header aside {
+  width: 25%;
+}

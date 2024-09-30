@@ -55,7 +55,7 @@ module.exports = {
     expect: 'references-media-atrules-no-mq.expect.css'
   },
   'references-media-atrules-match-requested-mq': {
-    message: "Requesting a referencable rule that has a media query, when the requesting declaration selector's parent node is in a different media query, will yield a match when the @references request is wrapped with an @references-media at Rule with the target media query as a parameter",
+    message: "Requesting a referenceable rule that has a media query, when the requesting declaration selector's parent node is in a different media query, will yield a match when the @references request is wrapped with an @references-media at Rule with the target media query as a parameter",
     source: 'references-media-atrules-match-requested-mq.css',
     expect: 'references-media-atrules-match-requested-mq.expect.css',
   },
@@ -75,6 +75,12 @@ module.exports = {
     expect: 'parent-folder-test/folder1/folder2/at-import-relative-parent-support.expect.css',
     result: 'parent-folder-test/folder1/folder2/at-import-relative-parent-support.result.css'
   },
+  // FIXME :: Add test which checks safeChars guardrails
+  // 'at-import-remote-url-support': {
+  //   message: '@import files into the @reference block and reference them',
+  //   source: 'at-import-remote-url-support.css',
+  //   expect: 'at-import-remote-url-support.expect.css'
+  // },
   // 'nested-selector-support': {
   //   message: 'referenced selectors which contain nested selectors (using postcss-nested) and have the "all" flag set, will have their nested rules inserted after the requesting rule',
   //   source: 'nested-selector-support.css',

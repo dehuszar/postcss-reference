@@ -1,0 +1,7 @@
+@reference {
+  @import "https://cdn.jsdelivr.net/npm/purecss@2.2.0/build/pure-min.css";
+}
+
+button {
+  @references .pure-button all;
+}
